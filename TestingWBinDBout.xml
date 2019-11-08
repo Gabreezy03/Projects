@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/TestingWBinDBout.xsd">
+  <sxi:Logging>
+    <sxi:Retention>0</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>TRACE</sxi:Level>
+  </sxi:Logging>
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  <Connectors>
+    <Connector id="XML_Trigger" type="XML">
+      <Connection xsi:type="sxi:XML">
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>^.*FWK005.*$</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+    <Connector id="SXIDemoDB" type="MYSQL">
+      <Connection xsi:type="sxi:MYSQL">
+        <sxi:Server>localhost</sxi:Server>
+        <sxi:User>root</sxi:User>
+        <sxi:Password>admin</sxi:Password>
+        <sxi:RetryDelay>30</sxi:RetryDelay>
+        <sxi:DBName>sxi_sample</sxi:DBName>
+        <sxi:Port>3306</sxi:Port>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success />
+        <sxi:RecoverableError>
+          <sxi:Code>I/O Error: Read timed out</sxi:Code>
+          <sxi:Code>Invalid state, the Connection object is closed.</sxi:Code>
+          <sxi:Code>I/O Error: Connection reset by peer: socket write error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+    <Connector id="RetrieveFNMsg" type="SOAPWebService">
+      <Connection xsi:type="sxi:SOAPWebService">
+        <sxi:SOAPVersion>1.1</sxi:SOAPVersion>
+        <sxi:URL>http://192.168.95.106:8080/SXIWebServices/SOAPAsyncImporterV1</sxi:URL>
+        <sxi:Username />
+        <sxi:Password />
+        <sxi:Namespaces>
+          <sxi:Namespace prefix="ns0" uri="http://soap.sxi.co.za/" />
+        </sxi:Namespaces>
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+        <sxi:Stylesheet>C:\SXI\usr\stylesheets\FullNameHB.xsl</sxi:Stylesheet>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>Recoverable Error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+  </Connectors>
+  <SignalRegistry xsi:type="sxi:SigReg.XML">
+    <sxi:ConnectorID>XML_Trigger</sxi:ConnectorID>
+    <sxi:FolderPath>../../XPress/XmlOut</sxi:FolderPath>
+    <sxi:ActionElement>Create</sxi:ActionElement>
+    <sxi:FileName>^X-ServiceBroker~ACME~.*\.xml$</sxi:FileName>
+    <sxi:PollingDelay>1</sxi:PollingDelay>
+    <sxi:DeleteProcessed>yes</sxi:DeleteProcessed>
+  </SignalRegistry>
+  
+  <sxi:Tables>
+    <sxi:LookUpTables>
+      <sxi:Table name="PersonImportance">
+        <sxi:Mapping from="VIP" to="1"/>
+        <sxi:Mapping from="MiddleClass" to="2"/>
+        <sxi:Mapping from="Peasant" to="3"/>
+      </sxi:Table>
+    </sxi:LookUpTables>
+  </sxi:Tables>
+  
+  <Actions>
+    <Action name="Create">
+      <Mappings>
+        <Collect dataDefinition="CollectData" connectorId="XML_Trigger" lookupField="entryid" lookupValue="" source="../../XPress/XmlOut" >
+          <Conditions>
+            <Condition>
+              <When field="mPostalCode" operator="gt" value="0">
+                <And field="mPostalCode" operator="lt" value="3000"/>
+                <MemoryDataManipulation dataDefinition="SetLocGP" />
+              </When>
+              <When field="mPostalCode" operator="gt" value="2999">
+                <And field="mPostalCode" operator="lt" value="5000"/>
+                <MemoryDataManipulation dataDefinition="SetLocKZN" />
+              </When>
+              <When field="mPostalCode" operator="gt" value="4999">
+                <MemoryDataManipulation dataDefinition="SetLocWC" />
+              </When>
+              <Otherwise>
+                <MemoryDataManipulation dataDefinition="UnknownLocation" />
+              </Otherwise>
+            </Condition>
+          </Conditions>
+        </Collect>
+        <MemoryDataManipulation dataDefinition="CreateFullName" />
+        <LogComment Comment="========= ~#~mFullName~#~ ==========" logLevel="INFORMATION"/>
+        <OutputMemoryToLog/>
+        <Create dataDefinition="PrepareRFNM" connectorId="RetrieveFNMsg" source="wsHB"></Create>
+        <OutputMemoryToLog/>
+        <Create dataDefinition="InsertPeopleData" connectorId="SXIDemoDB" source="tblperson" />
+        <!--<XPress service="Workflow1" action="Create" transmitMethod="HIGH" destination="localhost" />-->
+      </Mappings>
+    </Action>
+  </Actions>
+  
+  <sxi:DataDefinitions>
+    <sxi:DataDefinition name="CreateFullName">
+      <sxi:Fields>
+        <sxi:Field name="NA">
+          <sxi:Rules>
+            <sxi:Concatenation>
+              <sxi:Delimiter>, </sxi:Delimiter>
+              <sxi:Fields>
+                <sxi:Field>mLastName</sxi:Field>
+                <sxi:Field>mFirstName</sxi:Field>
+              </sxi:Fields>
+            </sxi:Concatenation>
+          </sxi:Rules>
+          <sxi:OutputField>mFullName</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="PrepareRFNM">
+      <sxi:Fields>
+        <sxi:Field name="mFullName">
+          <sxi:OutputField>FNForStylesheet</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="CollectData">
+      <sxi:Fields>
+        <sxi:Field name="FirstName">
+          <sxi:Rules >
+            <sxi:Uppercase/>
+          </sxi:Rules>
+          <sxi:OutputField>mFirstName</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="LastName">
+          <sxi:Rules />
+          <sxi:OutputField>mLastName</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="MobileNum">
+          <sxi:Rules />
+          <sxi:OutputField>mMobileNum</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="PostalCode">
+          <sxi:Rules><sxi:Default>0000</sxi:Default></sxi:Rules>
+          <sxi:OutputField>mPostalCode</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="Importance">
+          <sxi:Rules><sxi:LookUp default="9">PersonImportance</sxi:LookUp></sxi:Rules>
+          <sxi:OutputField>mImportance</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    
+    <sxi:DataDefinition name="UnknownLocation">
+      <sxi:Fields>
+        <sxi:Field name="NA">
+          <sxi:Rules>
+            <sxi:Default>Unknown</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>mDerivedLocation</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="SetLocWC">
+      <sxi:Fields>
+        <sxi:Field name="NA">
+          <sxi:Rules>
+            <sxi:Default>Western Cape</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>mDerivedLocation</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="SetLocGP">
+      <sxi:Fields>
+        <sxi:Field name="NA">
+          <sxi:Rules>
+            <sxi:Default>Gauteng</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>mDerivedLocation</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="SetLocKZN">
+      <sxi:Fields>
+        <sxi:Field name="NA">
+          <sxi:Rules>
+            <sxi:Default>Kwazulu Natal</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>mDerivedLocation</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="InsertPeopleData">
+      <sxi:Fields>
+        <sxi:Field name="mFirstName">
+          <sxi:OutputField>firstname</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mLastName">
+          <sxi:OutputField>lastname</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mMobileNum">
+          <sxi:OutputField>mobilenum</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mFullName">
+          <sxi:OutputField>fullname</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mPostalCode">
+          <sxi:OutputField>postalcode</sxi:OutputField>
+        </sxi:Field>    
+        <sxi:Field name="mDerivedLocation">
+          <sxi:OutputField>location</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mImportance">
+          <sxi:OutputField>importance</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='msg']">
+          <sxi:Rules>
+            <sxi:Length>50</sxi:Length>
+          </sxi:Rules>
+          <sxi:OutputField>wsresp</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+  </sxi:DataDefinitions>
+</Configuration>

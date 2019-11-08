@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/ClientEscalations.xsd">
+  <sxi:Logging>
+    <sxi:Retention>10</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>TRACE</sxi:Level>
+  </sxi:Logging>
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+
+  <Connectors>
+    <Connector id="XML" type="XML">
+      <Connection xsi:type="sxi:XML">
+        <sxi:RetryDelay>10</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>^.*FWK005.*$</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+    <!-- 
+    The idea here is to use the reference number supplied on the notification to access the relevant 
+    information on the staging table/form to which the reference number refers and deliver the Message, BCX and DCX reference numbers.
+    -->
+    
+    <Connector id="BCX_SOAP_Update_Status" type="SOAPWebService">
+      <Connection xsi:type="sxi:SOAPWebService">
+        <!--<sxi:Username>sys-x-autocalls</sxi:Username>
+          <sxi:Password>sys-x-autocalls</sxi:Password>-->
+        <sxi:Username>sys-x-Integration</sxi:Username>
+        <sxi:Password>sys-x-Integration</sxi:Password>
+        <!-- To be changed from Dev "bcx-dev.onbm​c.com" to Prod "bcx.onbm​c.com" on go live for Helix  -->
+        <!--<sxi:URL>https://bcx.onbm​c.com/arsys/services/ARService?server=onbmc-s&amp;webService=SXI_SRT_Outgoing_Integration</sxi:URL>-->
+        <sxi:URL>https://bcx-dev.onbmc.com/arsys/services/ARService?server=onbmc-s&amp;webService=SXI_SRT_Outgoing_Integration</sxi:URL>
+        
+        <sxi:Namespaces>
+          <sxi:Namespace prefix="ns0" uri="urn:SXI_SRT_Outgoing_Integration"/>
+        </sxi:Namespaces>
+        <sxi:Stylesheet>D:\Program Files\SXI\usr\stylesheets\BCX_SRT_Outgoing_DEV.xsl</sxi:Stylesheet>
+        <sxi:RetryDelay>30</sxi:RetryDelay>
+        <sxi:Timeout>300</sxi:Timeout>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success/>
+        <sxi:RecoverableError/>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+    <Connector id="SMTP" type="SMTP">
+      <Connection xsi:type="sxi:SMTP">
+        <sxi:Server>165.233.54.12</sxi:Server>
+        <!--<sxi:User>xtransport@ourservicedesk.com</sxi:User>-->
+        <sxi:User/>
+        <!--<sxi:Password>T@gi2b2</sxi:Password>-->
+        <sxi:Password/>
+        <sxi:RetryDelay>10</sxi:RetryDelay>
+        <sxi:Timeout>30</sxi:Timeout>
+        <sxi:AuthType>None</sxi:AuthType>
+        <sxi:Port>25</sxi:Port>
+        <sxi:FromAddress>noreply@ourservicedesk.com</sxi:FromAddress>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success />
+        <sxi:RecoverableError />
+      </sxi:ReturnCodes>
+    </Connector>
+    
+  </Connectors>
+  
+  <!-- The workflow is triggered by the arrival of an "X-NOTIFY" doc from DCXAfgri_Outgoing   -->
+  <SignalRegistry xsi:type="sxi:SigReg.XML">
+    <sxi:ConnectorID>XML</sxi:ConnectorID>
+    <sxi:FolderPath>C:\SXI\XPress\XmlOut</sxi:FolderPath>
+    <sxi:ActionElement>//sxi:ActionName</sxi:ActionElement>
+    <sxi:FileName>^X-ServiceBroker~XMail~.+\.xml$</sxi:FileName>
+    <sxi:PollingDelay>5</sxi:PollingDelay>
+    <sxi:DeleteProcessed>no</sxi:DeleteProcessed>
+    
+    <!-- 
+      Catch the would-be Notify DOC, extract the transaction reference field. 
+      use this to retrieve the reference numbers from the staging table and build an email with 
+      the original reference number, the DCX Reference Number and the BCX Incident Number in the body.
+    -->   
+    
+  </SignalRegistry>
+  
+  <Actions>
+    <Action name="SendMailNotification">
+      <Mappings>
+        <Collect dataDefinition="CollectIncident" connectorId="XML" lookupField="entryid" lookupValue="" source="C:\SXI\XPress\XmlOut" />
+        <Create dataDefinition="GetRefNos" connectorId="BCX_SOAP_Update_Status" source="urn:SXI_SRT_Incoming_Integration/Set"/>
+        <!--<Collect dataDefinition="GetRefNos" connectorId="BCX_SOAP_Update_Status" source="urn:SXI_SRT_Incoming_Integration/Set" lookupField="1" lookupValue="TransNo"/>-->
+        
+        
+        
+        <!-- Send email notification if an error occured -->
+        <MemoryDataManipulation dataDefinition="BuilldDCXNotify">
+          <Conditions>
+            <Condition>
+              <When field="SendToAddress" operator="Matches" value="No Email Address">
+                <OutputMemoryToLog logLevel="NONE" optional="no"/>
+                <Create dataDefinition="DCXEscalationEmail1" connectorId="SMTP" source="NA" optional="no"/>
+              </When>
+              <Otherwise>
+                <OutputMemoryToLog logLevel="NONE" optional="no"/>
+                <Create dataDefinition="DCXEscalationEmail1" connectorId="SMTP" source="NA" optional="no"/>
+                <Create dataDefinition="DCXEscalationEmail2" connectorId="SMTP" source="NA" optional="no"/>
+              </Otherwise>
+            </Condition>
+          </Conditions>
+        </MemoryDataManipulation>
+      </Mappings>
+    </Action>
+    
+<!--    <Action name="EDCONEscalation">
+      <Mappings>
+        <Collect dataDefinition="CollectIncident" connectorId="XML" lookupField="entryid" lookupValue="" source="C:\SXI\XPress\XmlOut" />
+        <!-\-<Collect dataDefinition="GetRefNos" connectorId="ARS" source="REMEX:CE:HelpDeskInterface-Outgoing" lookupField="1" lookupValue="TransNo"/>-\->
+        <Create dataDefinition="BuilldDCXNotify" connectorId="SMTP" source="C:\SXI\XPress\XmlOut"/>
+      </Mappings>
+    </Action>-->
+  </Actions>
+  
+  <sxi:DataDefinitions>
+    
+    <!-- Isolate the transaction reference number from the notify message -->
+    <!-- It is the tenth string using blank as the delimiter -->
+    
+    <sxi:DataDefinition name="CollectIncident">
+      <sxi:Fields>
+        
+        <!-- DCX Incident Number -->
+        <sxi:Field name="//*[local-name()='IncidentNumber']">
+          <sxi:OutputField>IncidentNumber</sxi:OutputField>
+        </sxi:Field>
+        <!-- Description -->
+        <sxi:Field name="//*[local-name()='Symptom']">
+      <!--    <sxi:Rules>
+            <sxi:Split>
+              <sxi:Delimiter> </sxi:Delimiter>
+              <sxi:OutputFields>
+                <sxi:OutputField index="9">tmpTransNo</sxi:OutputField>
+              </sxi:OutputFields>
+            </sxi:Split>
+          </sxi:Rules>-->
+          <sxi:OutputField>Symptom</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    
+    <!-- Using the transaction number, attempt to retrieve the BCX and DCX call numbers from the staging table -->
+    
+    <sxi:DataDefinition name="GetRefNos">
+      <sxi:Fields>
+        <!-- BCXRefNo -->
+        <sxi:Field name="1000000161">
+          <sxi:OutputField>BCXRefNo</sxi:OutputField>
+        </sxi:Field>
+        <!-- DCXRefNo -->
+        <sxi:Field name="802005137">
+          <sxi:OutputField>DCXRefNo</sxi:OutputField>
+        </sxi:Field>
+        <!-- Message -->
+        <sxi:Field name="536875630">
+          <sxi:OutputField>Message</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    
+    <sxi:DataDefinition name="BuilldDCXNotify">
+      <sxi:Fields>
+        <sxi:Field name="SendToAddress">
+          <sxi:OutputField>SendToAddress</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="Dummy">
+          <sxi:Rules>
+            <sxi:Default>zwido.gabara@sxi.co.za,stephan.booyzen@sxi.co.za</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField datatype="recipients">To</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="Dummy">
+          <sxi:Rules>
+            <sxi:Concatenation>
+              <sxi:Delimiter> 
+              
+              </sxi:Delimiter>
+              <sxi:Fields>
+                <sxi:Field staticValue="yes">Good day,&#xD;&#xD;</sxi:Field>
+                <sxi:Field staticValue="yes">Please note that there's no Incident/Request number and the following default values where returned: </sxi:Field>
+                <sxi:Field staticValue="yes">&#xD;DCX Reference Number: </sxi:Field>
+                <sxi:Field>IncidentNumber</sxi:Field>
+                <sxi:Field staticValue="yes"> .&#xD;&#xD;&#xD;Message: </sxi:Field>
+                <sxi:Field>Symptom</sxi:Field>
+                <sxi:Field staticValue="yes">.&#xD;&#xD;Yours in Service,&#xD;</sxi:Field>
+                <sxi:Field staticValue="yes">ITSMS</sxi:Field>
+              </sxi:Fields>
+            </sxi:Concatenation>
+            <sxi:Substitute>
+              <sxi:Find>null</sxi:Find>
+              <sxi:Replace> </sxi:Replace>
+            </sxi:Substitute>
+          </sxi:Rules>
+          <sxi:OutputField>tmpBody</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="Subject">
+          <sxi:Rules>
+            <sxi:Default>DCX BCX ERROR: No Incident Number</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>Subject</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    
+    
+    <sxi:DataDefinition name="DCXEscalationEmail1">
+      <sxi:Fields>
+        <sxi:Field name="Recipients">
+          <sxi:Rules>
+            <sxi:Default>zwido.gabara@sxi.co.za</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>To</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="Subject">
+          <sxi:Rules>
+            <sxi:Default>DCXAfgri Error Notification</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>Subject</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="tmpBody">
+          <sxi:OutputField>Body</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    
+    <sxi:DataDefinition name="DCXEscalationEmail2">
+      <sxi:Fields>
+        <sxi:Field name="Recipients">
+          <sxi:Rules>
+            <sxi:Default>stephan.booyzen@sxi.co.za</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>To</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="Subject">
+          <sxi:Rules>
+            <sxi:Default>DCXAfgri Error Notification</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>Subject</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="tmpBody">
+          <sxi:OutputField>Body</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    
+    <!--  Typical Mail format:
+      
+      Subject: 
+      DCX BCX Reference Number Information
+      Body: 
+      Transaction Number: 000000001677132
+      DCX Reference Number: 3429683
+      BCX Reference Number: null
+      Message: Text of the Message
+    -->
+    
+  </sxi:DataDefinitions>
+  
+</Configuration>
+
+
+

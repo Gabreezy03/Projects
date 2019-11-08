@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/NRSSDCBEM01_Test.xsd">
+  <sxi:Logging>
+    <sxi:Retention>2</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>TRACE</sxi:Level>
+  </sxi:Logging>
+  
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  
+  <Connectors>
+    <Connector id="XML_In" type="XML">
+      <Connection xsi:type="sxi:XML">
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>^.*FWK005.*$</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+  </Connectors>
+  
+  <SignalRegistry xsi:type="sxi:SigReg.XML">
+    <sxi:ConnectorID>XML_In</sxi:ConnectorID>
+    <sxi:FolderPath>../../XPress/XmlOut</sxi:FolderPath>
+    <sxi:ActionElement>Create</sxi:ActionElement>
+    <sxi:FileName>^X-ServiceBroker~NRSSDCBEM01_Test.*\.xml</sxi:FileName>
+    <sxi:PollingDelay>1</sxi:PollingDelay>
+    <sxi:DeleteProcessed>yes</sxi:DeleteProcessed>
+  </SignalRegistry>
+  
+  <Actions>
+    <Action name="Create">
+      <Mappings>
+        <Collect dataDefinition="Get_Event_Data" connectorId="XML_In" lookupField="NA" lookupValue="" source="../../XPress/XmlOut" />
+        <OutputMemoryToLog/>
+      </Mappings>
+    </Action>
+  </Actions>
+  
+  <sxi:DataDefinitions>
+    <sxi:DataDefinition name="Get_Event_Data">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='UID']">
+          <sxi:Rules>
+            <sxi:Default>Generate_UID</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>UUID</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Agent_Class']">
+          <sxi:OutputField>Agent_Class</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Agent_Instance']">
+          <sxi:OutputField>Agent_Instance</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Client']">
+          <sxi:OutputField>Client</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Date']">
+          <sxi:OutputField>Date</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='ESMTool']">
+          <sxi:OutputField>ESMTool</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Header']">
+          <sxi:OutputField>Header</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Instance_Detail']">
+          <sxi:OutputField>Instance_Detail</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='MD']">
+          <sxi:OutputField>MD</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Server']">
+          <sxi:OutputField>Server</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Source']">
+          <sxi:OutputField>Source</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='State']">
+          <sxi:OutputField>State</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Time']">
+          <sxi:OutputField>Time</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='UserData']">
+          <sxi:Rules>
+            <sxi:Split>
+              <sxi:Delimiter>~~~</sxi:Delimiter>
+              <sxi:OutputFields>
+                <sxi:OutputField index="1">UserData</sxi:OutputField>
+              </sxi:OutputFields>
+            </sxi:Split>
+            <sxi:Length>6000</sxi:Length>
+          </sxi:Rules>
+          <sxi:OutputField>Omit</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='dest']">
+          <sxi:OutputField>dest</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+  </sxi:DataDefinitions>
+</Configuration>

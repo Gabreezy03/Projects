@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/SigRegistryTest.xsd">
+  <sxi:Logging>
+    <sxi:Retention>0</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>TRACE</sxi:Level>
+  </sxi:Logging>
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  <Connectors>
+    <Connector id="SigRegDB" type="MYSQL">
+      <Connection xsi:type="sxi:MYSQL">
+        <sxi:Server>localhost</sxi:Server>
+        <sxi:User>root</sxi:User>
+        <sxi:Password>admin</sxi:Password>
+        <sxi:RetryDelay>30</sxi:RetryDelay>
+        <sxi:DBName>sxitraining</sxi:DBName>
+        <sxi:Port>3306</sxi:Port>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success />
+        <sxi:RecoverableError>
+          <sxi:Code>I/O Error: Read timed out</sxi:Code>
+          <sxi:Code>Invalid state, the Connection object is closed.</sxi:Code>
+          <sxi:Code>I/O Error: Connection reset by peer: socket write error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+  </Connectors>
+  <SignalRegistry xsi:type="sxi:SigReg.DB">
+    <sxi:ConnectorID>SigRegDB</sxi:ConnectorID>
+    <sxi:SignalRegistry>sig_reg</sxi:SignalRegistry>
+    <sxi:ActionField>Action</sxi:ActionField>
+    <sxi:EntryIdField>entryid</sxi:EntryIdField>
+    <sxi:EpochTimeField>epochtime</sxi:EpochTimeField>
+    <sxi:ProcessedStateField>processedstate</sxi:ProcessedStateField>
+    <sxi:PollingDelay>3</sxi:PollingDelay>
+    <sxi:RecordDelay>1</sxi:RecordDelay>
+    <sxi:ProcessedCodes>
+      <sxi:Unread>0</sxi:Unread>
+      <sxi:Success>1</sxi:Success>
+      <sxi:Error>2</sxi:Error>
+    </sxi:ProcessedCodes>
+    <sxi:UniqueIdField>id</sxi:UniqueIdField>
+    <sxi:DeleteProcessed>no</sxi:DeleteProcessed>
+  </SignalRegistry>
+  <Actions>
+    <Action name="Create">
+      <Mappings>
+        <LogComment Comment="=============Found The Create Signal=============="/>
+      </Mappings>
+    </Action>
+    <Action name="Update">
+      <Mappings>
+        <LogComment Comment="=============Found The Update Signal=============="/>
+      </Mappings>
+    </Action>
+  </Actions>
+  <sxi:DataDefinitions>
+    <sxi:DataDefinition name="NA">
+      <sxi:Fields>
+        <sxi:Field name="NA">
+          <sxi:Rules />
+          <sxi:OutputField>NA</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+  </sxi:DataDefinitions>
+</Configuration>

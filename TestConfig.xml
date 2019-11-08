@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/TestConfig.xsd">
+  <sxi:Logging>
+    <sxi:Retention>2</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>TRACE</sxi:Level>
+  </sxi:Logging>
+  
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  
+   <Connectors>
+        <!-- ========================== XML Connector ========================= -->
+        <Connector id="XML" type="XML">
+            <Connection xsi:type="sxi:XML">
+                <sxi:RetryDelay>60</sxi:RetryDelay>
+            </Connection>
+            <sxi:ReturnCodes>
+                <sxi:Success>
+                    <sxi:Code>Success Code</sxi:Code>
+                </sxi:Success>
+                <sxi:RecoverableError>
+                    <sxi:Code>Error Code</sxi:Code>
+                    <sxi:Code>Could not delete the file</sxi:Code>
+                </sxi:RecoverableError>
+            </sxi:ReturnCodes>
+        </Connector>
+      
+      <!-- ===================== SMTP Connector to send emails to the failover mailbox ======================== -->
+        <Connector id="SMTP" type="SMTP">
+            <Connection xsi:type="sxi:SMTP">
+                <sxi:Server>smtp.sendgrid.net</sxi:Server>
+                <sxi:User>apikey</sxi:User>
+                <sxi:Password>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</sxi:Password>
+                <sxi:RetryDelay>10</sxi:RetryDelay>
+                <sxi:AuthType>Basic</sxi:AuthType>
+                <sxi:Port>25</sxi:Port>
+                <sxi:FromAddress>sean.riley@sxi.co.za</sxi:FromAddress>
+            </Connection>
+            <sxi:ReturnCodes>
+                <sxi:Success></sxi:Success>
+                <sxi:RecoverableError></sxi:RecoverableError>
+            </sxi:ReturnCodes>
+            </Connector>
+     
+<!--     <Connector id="SMTP" type="SMTP">
+       <Connection xsi:type="sxi:SMTP">
+         <sxi:Server>nrssbxas01.smcndc.managedservices.net</sxi:Server>
+         <!-\-<sxi:Server>127.0.0.1</sxi:Server>-\->
+         <sxi:User>SXI</sxi:User>
+         <sxi:Password>T@gi2b2</sxi:Password>
+         <sxi:RetryDelay>10</sxi:RetryDelay>
+         <sxi:Timeout>400</sxi:Timeout>
+         <sxi:AuthType>Basic</sxi:AuthType>
+         <sxi:Port>25</sxi:Port>
+         <sxi:FromAddress>xlayer@bcx.co.za</sxi:FromAddress>
+       </Connection>
+       <sxi:ReturnCodes>
+         <sxi:Success>
+           <sxi:Code/>
+         </sxi:Success>
+         <sxi:RecoverableError>
+           <sxi:Code>^.*Exception\sreading\sresponse.*$</sxi:Code>
+           <sxi:Code>^.*Couldn\'t\sconnect\sto\shost.*$</sxi:Code>
+         </sxi:RecoverableError>
+       </sxi:ReturnCodes>
+     </Connector>-->
+     
+     </Connectors>
+        
+        <!-- ======================= SignalRegistry Collect File =================== -->
+        <SignalRegistry xsi:type="sxi:SigReg.XML">
+            <sxi:ConnectorID>XML</sxi:ConnectorID>
+            <sxi:FolderPath>../../XPress/XmlOut</sxi:FolderPath>
+            <sxi:ActionElement>//sxi:ActionName</sxi:ActionElement>     
+            <sxi:FileName>^X-ServiceBroker~TBL-Email-Ingestion-Test~*.*\.xml|</sxi:FileName>
+            <sxi:PollingDelay>1</sxi:PollingDelay>
+            <sxi:DeleteProcessed>no</sxi:DeleteProcessed>
+        </SignalRegistry>
+        
+        <!-- *************************ACTIONS*****************************************************************ACTIONS*************************************** -->
+        <Actions>
+            <Action name="ForwardNonValidEmail">
+                <Mappings>
+                    
+                    <LogComment logLevel="INFORMATION" Comment="About to process Email forwarding to the Tiger Brands IT Failover email address. 'ForwardNonValidEmail' Action"/>
+                    
+                    <Collect  dataDefinition="CollectXML" connectorId="XML" lookupField="NA" lookupValue="" source="../../XPress/XmlOut"/>
+                    
+                  <!-- ============================ Send original email to the failover mailbox ============================ -->
+                    <Create dataDefinition="ForwardOriginalEmail" connectorId="SMTP" source="NA"/>
+                    <OutputMemoryToLog/>
+                    
+                </Mappings>
+            </Action>
+            
+        </Actions>
+        
+        
+        <sxi:DataDefinitions>
+
+    <!-- ====================== This is where the data from the xml file gets collected for the email body ====================== -->
+    <sxi:DataDefinition name="CollectXML">
+      <sxi:Fields>
+        
+        <sxi:Field name="/*[local-name()='XServiceBroker' ]/*[local-name()='Action'][1]">
+          <sxi:OutputField>Action</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="/*[local-name()='XServiceBroker' ]/*[local-name()='Subject'][1]">
+          <sxi:OutputField>Subject</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="/*[local-name()='XServiceBroker' ]/*[local-name()='EmailAddress'][1]">
+          <sxi:OutputField>From</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="/*[local-name()='XServiceBroker' ]/*[local-name()='TempBody'][1]">
+          <sxi:OutputField>Body</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+
+          <!-- ========= Sends Original email to fail over mailbox ========= -->
+    <sxi:DataDefinition name="ForwardOriginalEmail">
+      <sxi:Fields>
+        
+        <sxi:Field name="From">
+          <sxi:OutputField datatype="string">From</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="mEmailAdd">
+          <sxi:Rules>
+            <sxi:Default>zwido.gabara@sxi.co.za,stephan.booyzen@sxi.co.za</sxi:Default>         
+          </sxi:Rules>          
+          <sxi:OutputField datatype="recipients">To</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="//*[local-name()='Subject']">
+          <sxi:Rules>
+            <sxi:Default>No Subject</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>Subject</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="//*[local-name()='Body']">
+          <sxi:OutputField>Body</sxi:OutputField>
+        </sxi:Field>
+        
+      </sxi:Fields>
+    </sxi:DataDefinition>
+  </sxi:DataDefinitions>
+
+</Configuration>

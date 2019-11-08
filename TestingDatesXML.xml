@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/TestingDatesXML.xsd">
+  <sxi:Logging>
+    <sxi:Retention>0</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>TRACE</sxi:Level>
+  </sxi:Logging>
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  <Connectors>
+    <Connector id="XML_Conn" type="XML">
+      <Connection xsi:type="sxi:XML">
+        <sxi:RetryDelay>10</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>^.*FWK005.*$</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+  </Connectors>
+  <SignalRegistry xsi:type="sxi:SigReg.XML">
+    <sxi:ConnectorID>XML_Conn</sxi:ConnectorID>
+    <sxi:FolderPath>../../XPress/XmlOut</sxi:FolderPath>
+    <sxi:ActionElement>Create</sxi:ActionElement>
+    <sxi:FileName>^dates.*\.xml$</sxi:FileName>
+    <sxi:PollingDelay>1</sxi:PollingDelay>
+    <sxi:DeleteProcessed>yes</sxi:DeleteProcessed>
+  </SignalRegistry>
+  <Actions>
+    <Action name="Create">
+      <Mappings>
+        <!--  -->
+        <Collect dataDefinition="CollectDatesFromXMLFile" connectorId="XML_Conn" lookupField="entryid" lookupValue="" source="../../XPress/XmlOut" />
+        <!--  -->
+        <MemoryDataManipulation dataDefinition="CalculateDateOne"/>
+        <MemoryDataManipulation dataDefinition="GetDateFromEpoch"/>
+        <OutputMemoryToLog/>
+      </Mappings>
+    </Action>
+  </Actions>
+  <sxi:DataDefinitions>
+    <sxi:DataDefinition name="CollectDatesFromXMLFile">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='dateOne']">
+          <sxi:Rules ><sxi:DateToEpoch InputDateFormat="MM-dd-yyyy"/></sxi:Rules>
+          <sxi:OutputField>mDateOne</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='dateTwo']">
+          <sxi:Rules />
+          <sxi:OutputField>mDateTwo</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="CalculateDateOne">
+      <sxi:Fields>
+        <sxi:Field name="mDateOne">
+          <sxi:Rules><sxi:Calculate>
+            <sxi:Expression operator="-">
+              <sxi:Operand>345600</sxi:Operand>
+            </sxi:Expression>
+          </sxi:Calculate></sxi:Rules>
+          <sxi:OutputField>CalDateOne</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="GetDateFromEpoch">
+      <sxi:Fields>
+        <sxi:Field name="CalDateOne">
+          <sxi:Rules><sxi:EpochToDate OutputDateFormat="MM-dd-yyyy"/></sxi:Rules>
+          <sxi:OutputField>FinalDate</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+  </sxi:DataDefinitions>
+</Configuration>

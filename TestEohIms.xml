@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow"
+  xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/TestEohIms.xsd">
+  <sxi:Logging>
+    <sxi:Retention>0</sxi:Retention>
+    <sxi:Directory/>
+    <sxi:Level>TRACE</sxi:Level>
+  </sxi:Logging>
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost"/>
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost"/>
+  </GlobalNotifications>
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  
+  <Connectors>
+    <Connector id="XMLFile" type="XML">
+      <Connection xsi:type="sxi:XML">
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success/>
+        <sxi:RecoverableError/>
+      </sxi:ReturnCodes>
+    </Connector>
+  </Connectors>
+  
+  <!--  -->
+  <SignalRegistry xsi:type="sxi:SigReg.XML">
+    <sxi:ConnectorID>XMLFile</sxi:ConnectorID>
+    <sxi:FolderPath>../../XPress/XmlOut</sxi:FolderPath>
+    <sxi:ActionElement>testAction</sxi:ActionElement>
+    <sxi:FileName>^inputpta*.xml$</sxi:FileName>
+    <sxi:PollingDelay>1</sxi:PollingDelay>
+    <sxi:DeleteProcessed>yes</sxi:DeleteProcessed>
+  </SignalRegistry>
+  <sxi:Tables>
+    <sxi:LookUpTables>
+      <sxi:Table name="Test">
+        <sxi:Mapping from="this is test 1" to="Lookup Successful"/>
+      </sxi:Table>
+    </sxi:LookUpTables>
+    
+  </sxi:Tables>
+  <Actions>
+    <Action name="testAction">
+      <Mappings>
+        <!-- XML file trigger -->
+        <Collect  connectorId="XMLFile" lookupField="entryid" lookupValue="" source="../../XPress/XmlOut"/>
+        <!--  -->
+        <LogComment Comment="************************************ Testing ************************************"/>
+        <OutputMemoryToLog/>
+        <!--  -->
+        
+        <XPress dataDefinition="CollectTrigger" service="TestZwido" action="Create" transmitMethod="LOCAL" destination="localhost"/>
+        
+      </Mappings>
+    </Action>
+
+  </Actions>
+  <sxi:DataDefinitions>
+    <sxi:DataDefinition name="CollectTrigger">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='Field1']">
+          <sxi:OutputField>Field1</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="//*[local-name()='Field2']">
+          <sxi:OutputField>Field2</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="//*[local-name()='Field3']">
+          <sxi:OutputField>Field3</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="//*[local-name()='Field4']">
+          <sxi:OutputField>Field4</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="//*[local-name()='Field5']">
+          <sxi:OutputField>Field5</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="//*[local-name()='Field6']">
+          <sxi:OutputField>Field6</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="//*[local-name()='Assignee']">
+          <sxi:OutputField>Assignee</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="//*[local-name()='Dept']">
+          <sxi:OutputField>Dept</sxi:OutputField>
+        </sxi:Field>
+        
+      </sxi:Fields>
+    </sxi:DataDefinition>
+
+      <sxi:DataDefinition name="GetCity">
+      <sxi:Fields>
+        <sxi:Field name="Assignee">
+          <sxi:OutputField>mAssignee</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="Dept">
+          <sxi:OutputField>mDept</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+  </sxi:DataDefinitions>
+</Configuration>

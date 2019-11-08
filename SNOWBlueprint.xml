@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/SNOWBlueprint.xsd">
+  <sxi:Logging>
+    <sxi:Retention>0</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>TRACE</sxi:Level>
+  </sxi:Logging>
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  
+  <Connectors>
+    <Connector id="Trigger" type="XML">
+      <Connection xsi:type="sxi:XML">
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>^.*FWK005.*$</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    <Connector id="SNOW_Create" type="RESTWebService">
+      <Connection xsi:type="sxi:RESTWebService">
+        <sxi:URL>https://dev85728.service-now.com/api/now/table/incident</sxi:URL>
+        <sxi:DataTypeToSend>JSON</sxi:DataTypeToSend>
+        <sxi:Username>sxi_external</sxi:Username>
+        <sxi:Password>T@gi2b2</sxi:Password>
+        <sxi:RetryDelay>10</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success></sxi:Success>
+        <sxi:RecoverableError></sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    <Connector id="SNOW_Update" type="RESTWebService">
+      <Connection xsi:type="sxi:RESTWebService">
+        <sxi:URL>https://dev85728.service-now.com/api/now/table/incident/~#~mSysID~#~</sxi:URL>
+        <sxi:DataTypeToSend>JSON</sxi:DataTypeToSend>
+        <sxi:Username>sxi_external</sxi:Username>
+        <sxi:Password>T@gi2b2</sxi:Password>
+        <sxi:RetryDelay>10</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success></sxi:Success>
+        <sxi:RecoverableError></sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+  </Connectors>
+  
+  <!-- This signal registry read in a simple traditional SCOM X-DEC doc that looks as follows:
+  
+  <?xml version="1.0" standalone="yes"?>
+  <SouthernX>
+      <Agent_Class>SCOM2007</Agent_Class>
+      <ESMTool>SCOM2007</ESMTool>
+      <MD>NDCVCSCOMMGTP01</MD>
+      <Agent_Instance>Campus Lan</Agent_Instance>
+      <Server>NDCDHCP01</Server>
+      <Instance_Detail>U2VydmljZSBlbnRlcmVkIHVucHJlZGljdGFibGUgc3RhdGU=</Instance_Detail>
+      <Header>X-CALL</Header>
+      <Date>17-07-2018</Date>
+      <Time>17:38:22</Time>
+      <State>Error</State>
+      <dest>10.30.12.10</dest>
+      <UID>cb399c0e-04aa-43fa-8be8-92741240cea9</UID>
+      <UserData>VGhlIE1jQWZlZSBlUE8gQWdlbnQgSW5zdGFsbCBzZXJ2aWNlIGlzIG1hcmtlZCBhcyBhbiBpbnRlcmFjdGl2ZSBzZXJ2aWNlLiAgSG93ZXZlciwgdGhlIHN5c3RlbSBpcyBjb25maWd1cmVkIHRvIG5vdCBhbGxvdyBpbnRlcmFjdGl2ZSBzZXJ2aWNlcy4gIFRoaXMgc2VydmljZSBtYXkgbm90IGZ1bmN0aW9uIHByb3Blcmx5Lgo=</UserData>
+      <Client>Edcon</Client>
+      <Source>ESM</Source>
+  </SouthernX>
+  -->
+  <SignalRegistry xsi:type="sxi:SigReg.XML">
+    <sxi:ConnectorID>Trigger</sxi:ConnectorID>
+    <sxi:FolderPath>../../XPress/XmlOut</sxi:FolderPath>
+    <sxi:ActionElement>Create</sxi:ActionElement>
+    <sxi:FileName>^X-DEC~SNOWBlueprint~.*\.xml</sxi:FileName>
+    <sxi:PollingDelay>1</sxi:PollingDelay>
+    <sxi:DeleteProcessed>yes</sxi:DeleteProcessed>
+  </SignalRegistry>
+  
+  <Actions>
+    <Action name="Create">
+      <Mappings>
+        <!-- Collect event data from a traditional X-DEC document -->
+        <Collect dataDefinition="CollectEventDetails" connectorId="Trigger" lookupField="na" lookupValue="" source="../../XPress/XmlOut" />
+        
+        <!-- ==================== Create a NEW incident into SERVICE NOW ==================== -->
+        <LogComment Comment="====================Create a NEW incident into SERVICE NOW===================="/>
+        <Create dataDefinition="Create_SNOWIncident" connectorId="SNOW_Create" source="POST">
+          <Conditions>
+            <Condition>
+              <When value="True">
+                <MemoryDataManipulation dataDefinition="Collect_Create_Response"/>
+                <MemoryDataManipulation dataDefinition="Collect_SysID_and_Incident_Number"></MemoryDataManipulation>
+                
+                <!-- ==================== Add a Comment and a Work Note to the Incident ==================== -->
+                <LogComment Comment="==================== Add a Comment and a Work Note to the Incident to Incident ~#~mIncidentNum~#~ [~#~mSysID~#~]===================="/>
+                <Create dataDefinition="AddCommentandWorkNote_SNOWIncident" connectorId="SNOW_Update" source="PUT"/>
+                
+                <!-- ==================== Update Incident to In Progress ==================== -->
+                <LogComment Comment="==================== Update Incident ~#~mIncidentNum~#~ [~#~mSysID~#~] to In Progress ===================="/>
+                <Create dataDefinition="UpdateToInProgress_SNOWIncident" connectorId="SNOW_Update" source="PUT"/>
+                
+                <!-- ==================== Update Incident to Resolved (6)/Closed (7) ==================== -->
+                <LogComment Comment="==================== Update Incident ~#~mIncidentNum~#~ [~#~mSysID~#~] to Resolved (6)/Closed (7) ===================="/>
+                <Create dataDefinition="UpdateToResolved_SNOWIncident" connectorId="SNOW_Update" source="PUT"/>
+                
+              </When>
+            </Condition>
+          </Conditions>
+        </Create>
+        
+      </Mappings>
+    </Action>
+  </Actions>
+  <sxi:DataDefinitions>
+    <sxi:DataDefinition name="CollectEventDetails">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='Agent_Class']">
+          <sxi:Rules />
+          <sxi:OutputField>mAgent_Class</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='ESMTool']">
+          <sxi:OutputField>mESMTool</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='MD']">
+          <sxi:OutputField>mMD</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Agent_Instance']">
+          <sxi:OutputField>mAgent_Instance</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Server']">
+          <sxi:OutputField>mServer</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Instance_Detail']">
+          <sxi:Rules>
+            <sxi:DecodeBase64/>
+          </sxi:Rules>
+          <sxi:OutputField>mInstance_Detail</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Header']">
+          <sxi:OutputField>mHeader</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Date']">
+          <sxi:OutputField>mDate</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Time']">
+          <sxi:OutputField>Time</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='State']">
+          <sxi:OutputField>mState</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='dest']">
+          <sxi:OutputField>mdest</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='UID']">
+          <sxi:OutputField>mUID</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='UserData']">
+          <sxi:Rules>
+            <sxi:DecodeBase64/>
+          </sxi:Rules>
+          <sxi:OutputField>mUserData</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Client']">
+          <sxi:OutputField>mClient</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='Source']">
+          <sxi:OutputField>mSource</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    
+    <!-- ===========================================================================================================
+          Create an Incident in SNOW and get the Sys_ID and Incident number back
+         =========================================================================================================== -->
+    <sxi:DataDefinition name="Create_SNOWIncident">
+      <sxi:Fields>
+        <sxi:Field name="na">
+          <sxi:Rules>
+            <sxi:Concatenation>
+              <sxi:Delimiter> </sxi:Delimiter>
+              <sxi:Fields>
+                <sxi:Field>mServer</sxi:Field>
+                <sxi:Field staticValue="yes">reported:</sxi:Field>
+                <sxi:Field>mAgent_Instance</sxi:Field>
+                <sxi:Field staticValue="yes">-</sxi:Field>
+                <sxi:Field>mInstance_Detail</sxi:Field>
+              </sxi:Fields>
+            </sxi:Concatenation>
+          </sxi:Rules>
+          <sxi:OutputField>short_description</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mUserData">
+          <sxi:OutputField>description</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="na">
+          <sxi:Rules>
+            <sxi:Default>Help Desk</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>assignment_group</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="na">
+          <sxi:Rules>
+            <sxi:Default>2</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>urgency</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="na">
+          <sxi:Rules>
+            <sxi:Default>2</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>impact</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="na">
+          <sxi:Rules>
+            <sxi:Default>Service User</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>caller_id</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="Collect_Create_Response">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='ResponseMessage'][last()]">
+          <sxi:Rules>
+            <sxi:JsonStringToMemory/>
+          </sxi:Rules>
+          <sxi:OutputField>CreateResponse</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="Collect_SysID_and_Incident_Number">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='CreateResponse'][1]/*[namespace-uri()='' and local-name()='Object'][1]/*[namespace-uri()='' and local-name()='result'][1]/*[namespace-uri()='' and local-name()='sys_id'][1]">
+          <sxi:OutputField>mSysID</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='CreateResponse'][1]/*[namespace-uri()='' and local-name()='Object'][1]/*[namespace-uri()='' and local-name()='result'][1]/*[namespace-uri()='' and local-name()='number'][1]">
+          <sxi:OutputField>mIncidentNum</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    
+    <!-- ===========================================================================================================
+           Update an Incident in SNOW with a comment and a Work Note (NB these can be done separately or together
+         =========================================================================================================== -->
+    <sxi:DataDefinition name="AddCommentandWorkNote_SNOWIncident">
+      <sxi:Fields>
+        <sxi:Field name="mSysID">
+          <sxi:OutputField>mSysID</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="na">
+          <sxi:Rules>
+            <sxi:Default>Adding an additional COMMENT here</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>comments</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="na">
+          <sxi:Rules>
+            <sxi:Default>Adding an additional WORK NOTE here</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>work_notes</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    
+    <!-- ===========================================================================================================
+            Update an Incident in SNOW To In Progress
+         =========================================================================================================== -->
+    <sxi:DataDefinition name="UpdateToInProgress_SNOWIncident">
+      <sxi:Fields>
+        <sxi:Field name="mSysID">
+          <sxi:OutputField>mSysID</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="na">
+          <sxi:Rules>
+            <sxi:Default>2</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>state</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    
+    <!-- ===========================================================================================================
+      Update an Incident in SNOW To Resolved
+      =========================================================================================================== -->
+    <sxi:DataDefinition name="UpdateToResolved_SNOWIncident">
+      <sxi:Fields>
+        <sxi:Field name="mSysID">
+          <sxi:OutputField>mSysID</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="na">
+          <sxi:Rules>
+            <sxi:Default>A Comment indicating we are RESOLVING the ticket</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>comments</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="na">
+          <sxi:Rules>
+            <sxi:Default>Closed/Resolved by Caller</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>close_code</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="na">
+          <sxi:Rules>
+            <sxi:Default>A Resolution Notes field on the Resolution Information tab indicating we are RESOLVING the ticket</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>closed_notes</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="na">
+          <sxi:Rules>
+            <!-- ######## NOTE ######## 
+                 6 = Resolved
+                 7 = Closed
+                 ######## NOTE ######## -->
+            <sxi:Default>6</sxi:Default> 
+          </sxi:Rules>
+          <sxi:OutputField>state</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+  
+  
+  </sxi:DataDefinitions>
+</Configuration>

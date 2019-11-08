@@ -1,0 +1,477 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/GetSoccerTeamsInfo.xsd">
+  <sxi:Logging>
+    <sxi:Retention>0</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>TRACE</sxi:Level>
+  </sxi:Logging>
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  <Connectors>
+    <!-- mySql connector for inserting data into the db -->
+    <Connector id="InsertSoccerTeamInfoToDB" type="MYSQL">
+      <Connection xsi:type="sxi:MYSQL">
+        <sxi:Server>localhost</sxi:Server>
+        <sxi:User>root</sxi:User>
+        <sxi:Password>admin</sxi:Password>
+        <sxi:RetryDelay>30</sxi:RetryDelay>
+        <sxi:DBName>sxitraining</sxi:DBName>
+        <sxi:Port>3306</sxi:Port>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success />
+        <sxi:RecoverableError>
+          <sxi:Code>I/O Error: Read timed out</sxi:Code>
+          <sxi:Code>Invalid state, the Connection object is closed.</sxi:Code>
+          <sxi:Code>I/O Error: Connection reset by peer: socket write error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    <!-- Get soccer team info from REST web service -->
+    <Connector id="GetSoccerTeamsInfoFromRest" type="RESTWebService">
+      <Connection xsi:type="sxi:RESTWebService">
+        <sxi:URL>https://www.thesportsdb.com/api/v1/json/1/searchteams.php?t=~#~wsTeamName~#~</sxi:URL>
+        <sxi:DataTypeToSend>JSON</sxi:DataTypeToSend>
+        <sxi:Username/>
+        <sxi:Password/>
+        <sxi:RetryDelay>10</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>Recoverable Error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    <!-- Get players from REST web service -->
+    <Connector id="GetPlayersInfoFromRest" type="RESTWebService">
+      <Connection xsi:type="sxi:RESTWebService">
+        <sxi:URL>https://www.thesportsdb.com/api/v1/json/1/searchplayers.php?t=~#~wsTeamName~#~</sxi:URL>
+        <sxi:DataTypeToSend>JSON</sxi:DataTypeToSend>
+        <sxi:Username/>
+        <sxi:Password/>
+        <sxi:RetryDelay>10</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>Recoverable Error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    <!-- Signal Registry database -->
+    <Connector id="SigRegDB" type="MYSQL">
+      <Connection xsi:type="sxi:MYSQL">
+        <sxi:Server>localhost</sxi:Server>
+        <sxi:User>root</sxi:User>
+        <sxi:Password>admin</sxi:Password>
+        <sxi:RetryDelay>30</sxi:RetryDelay>
+        <sxi:DBName>sxitraining</sxi:DBName>
+        <sxi:Port>3306</sxi:Port>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success />
+        <sxi:RecoverableError>
+          <sxi:Code>I/O Error: Read timed out</sxi:Code>
+          <sxi:Code>Invalid state, the Connection object is closed.</sxi:Code>
+          <sxi:Code>I/O Error: Connection reset by peer: socket write error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    <!-- SMTP Connector === Send email with team info -->
+    <Connector id="SMTP_Conn" type="SMTP">
+      <Connection xsi:type="sxi:SMTP">
+        <sxi:Server>smtp.sendgrid.net</sxi:Server>
+        <sxi:User>apikey</sxi:User>
+        <sxi:Password>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</sxi:Password>
+        <sxi:RetryDelay>15</sxi:RetryDelay>
+        <sxi:AuthType>Basic</sxi:AuthType>
+        <sxi:Port>25</sxi:Port>
+        <sxi:FromAddress>zwido.training@demosmtp.co.za</sxi:FromAddress>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success />
+        <sxi:RecoverableError />
+      </sxi:ReturnCodes>
+    </Connector>
+    <!-- SOAP Web Service connector -->
+    <Connector id="SOAP_Conn" type="SOAPWebService">
+      <Connection xsi:type="sxi:SOAPWebService">
+        <sxi:SOAPVersion>1.1</sxi:SOAPVersion>
+        <sxi:URL>http://localhost:8080/SXIWebServices/SOAPAsyncImporterV1</sxi:URL>
+        <sxi:Username />
+        <sxi:Password />
+        <sxi:Namespaces>
+          <sxi:Namespace prefix="ns0" uri="http://soap.sxi.co.za/" />
+        </sxi:Namespaces>
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+        <sxi:Stylesheet>C:\SXI\usr\stylesheets\SendTeamInfoSOAP.xsl</sxi:Stylesheet>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>Recoverable Error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+  </Connectors>
+ <!-- DB Signal Registry -->
+  <SignalRegistry xsi:type="sxi:SigReg.DB">
+    <sxi:ConnectorID>SigRegDB</sxi:ConnectorID>
+    <sxi:SignalRegistry>sig_reg</sxi:SignalRegistry>
+    <sxi:ActionField>Action</sxi:ActionField>
+    <sxi:EntryIdField>entryid</sxi:EntryIdField>
+    <sxi:EpochTimeField>epochtime</sxi:EpochTimeField>
+    <sxi:ProcessedStateField>processedstate</sxi:ProcessedStateField>
+    <sxi:PollingDelay>3</sxi:PollingDelay>
+    <sxi:RecordDelay>1</sxi:RecordDelay>
+    <sxi:ProcessedCodes>
+      <sxi:Unread>0</sxi:Unread>
+      <sxi:Success>1</sxi:Success>
+      <sxi:Error>2</sxi:Error>
+    </sxi:ProcessedCodes>
+    <sxi:UniqueIdField>id</sxi:UniqueIdField>
+    <sxi:DeleteProcessed>no</sxi:DeleteProcessed>
+  </SignalRegistry>
+  <!--  -->
+  <Actions>
+    <Action name="Create">
+      <Mappings>
+        <!-- Get team name from the XML file -->
+        <Collect dataDefinition="CollectTeamName" connectorId="SigRegDB" lookupField="id" lookupValue="SXI_SigReg_UniqueIdField" source="sig_reg" />
+        
+        <!-- Get soccer team info from rest using the team name from sig reg -->
+        <Create dataDefinition="GetSoccerInfoFromRest" connectorId="GetSoccerTeamsInfoFromRest" source="GET" />
+        <!-- Convert the JSON response from the REST web service to XML -->
+        <MemoryDataManipulation dataDefinition="ConvertTeamJsonDataToXML"/>
+        <!-- Get team info from memory -->
+        <MemoryDataManipulation dataDefinition="GetTeamInfoFromMemory"/>
+
+        <!-- Get players from REST Web Service  -->
+        <Create dataDefinition="GetPlayersFromRest" connectorId="GetPlayersInfoFromRest" source="GET" />
+        <!-- Convert the JSON response from the REST web service to XML -->
+        <MemoryDataManipulation dataDefinition="ConvertPlayersJsonDataToXML"/>
+        <MemoryDataManipulation dataDefinition="GetPlayersFromMemory"/>
+
+        <!--  -->
+        <!-- Insert data from memory to DB -->
+        <Collect dataDefinition="GetTeamID" connectorId="InsertSoccerTeamInfoToDB" source="tblsoccerinfo" lookupField="name" lookupValue="SXI_SigReg_EntryIdField" optional="yes">
+          <Conditions>
+            <Condition>
+              <When value="False">
+                <Create dataDefinition="InsertSoccerInfoToDB" connectorId="InsertSoccerTeamInfoToDB" source="tblsoccerinfo" />
+                <Collect dataDefinition="GetTeamID" connectorId="InsertSoccerTeamInfoToDB" source="tblsoccerinfo" lookupField="id" lookupValue="SXI_SigReg_UniqueIdField"/>
+              </When>
+            </Condition>
+          </Conditions>
+        </Collect>
+        <!-- Apply stylesheet -->
+        <ApplyStyleSheetToMemoryContents stylesheet="SplitPlayers.xsl" stylesheetFolder="C:\SXI\usr\stylesheets"/>
+        <OutputMemoryToLog/>
+        <MemoryDataManipulation dataDefinition="GetNOP"/>
+        <!-- Check if mNOP(number of players) contains a value -->
+        <LogComment Comment="===================================== Got NOP: ~#~mNOP~#~ ========================================="/>
+        <OutputMemoryToLog/>
+        <Create dataDefinition="InsertPlayersIntoDB" connectorId="InsertSoccerTeamInfoToDB" source="tblplayers" splitData="yes"/>
+        <!-- Check if mTeamID contains a value -->
+        <LogComment Comment="================================Team ID: ~#~mTeamID~#~==============================================="/>
+        <!-- Send team info using SOAP Webservice -->
+        <Create dataDefinition="PrepareTeamInfo" connectorId="SOAP_Conn" source="processTransaction" />
+        <!--  -->
+        <MemoryDataManipulation dataDefinition="GetFormedYear">
+          <Conditions>
+            <Condition>
+              <When field="mFounded" operator="lt" value="1890">
+                <LogComment Comment="====================== This is an OLD Team ===================="/>
+              </When>
+              <Otherwise>
+                <LogComment Comment="====================== This is an New Team ===================="/>
+              </Otherwise>
+            </Condition>
+          </Conditions>
+        </MemoryDataManipulation>
+        <!-- Create email subject -->
+        <MemoryDataManipulation dataDefinition="CreateSubject"/>
+        <!-- Create email body -->
+        <MemoryDataManipulation dataDefinition="CreateBody"/>
+        <!-- Send email -->
+        <Create dataDefinition="BuildEmail" connectorId="SMTP_Conn" source="NA"/>
+      </Mappings>
+    </Action>
+  </Actions>
+  <sxi:DataDefinitions>
+    <!-- Get team name from db  -->
+    <sxi:DataDefinition name="CollectTeamName">
+      <sxi:Fields>
+        <sxi:Field name="entryid">
+          <sxi:Rules />
+          <sxi:OutputField>mTeamName</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <!-- Get team info from REST using name specified in the XML file -->
+    <sxi:DataDefinition name="GetSoccerInfoFromRest">
+      <sxi:Fields>
+        <sxi:Field name="mTeamName">
+          <sxi:Rules><sxi:URLEncode/></sxi:Rules>
+          <sxi:OutputField>wsTeamName</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <!-- Convert REST response from JSON to XML  -->
+    <sxi:DataDefinition name="ConvertTeamJsonDataToXML">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='ResponseMessage'][last()]">
+          <sxi:Rules><sxi:JsonStringToMemory/></sxi:Rules>
+          <sxi:OutputField>mResponseMessage</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <!-- Get the team name from the response-->
+    <sxi:DataDefinition name="GetTeamNameFromResponse">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='mResponseMessage'][1]/*[local-name()='Object'][1]/*[local-name()='teams'][1]/*[local-name()='Element'][1]/*[local-name()='strTeam'][1]">
+          <sxi:OutputField>mClubName</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="GetPlayersFromRest">
+      <sxi:Fields>
+        <sxi:Field name="mTeamName">
+          <sxi:OutputField>wsTeamName</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="ConvertPlayersJsonDataToXML">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='ResponseMessage'][last()]">
+          <sxi:Rules><sxi:JsonStringToMemory/></sxi:Rules>
+          <sxi:OutputField>mPlayerResponseMessage</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <!-- Get Team  -->
+    <sxi:DataDefinition name="GetTeamID">
+      <sxi:Fields>
+        <sxi:Field name="id">
+          <sxi:OutputField>mTeamID</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    
+    <!-- Insert the data collected to the database -->
+    <sxi:DataDefinition name="GetTeamInfoFromMemory">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='strDescriptionEN'][1]">
+          <sxi:OutputField>mBio</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='mResponseMessage'][1]/*[local-name()='Object'][1]/*[local-name()='teams'][1]/*[local-name()='Element'][1]/*[local-name()='strSport'][1]">
+          <sxi:OutputField>mSport</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='mResponseMessage'][1]/*[local-name()='Object'][1]/*[local-name()='teams'][1]/*[local-name()='Element'][1]/*[local-name()='strStadium'][1]">
+          <sxi:OutputField>mStadium</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='mResponseMessage'][1]/*[local-name()='Object'][1]/*[local-name()='teams'][1]/*[local-name()='Element'][1]/*[local-name()='intFormedYear'][1]">
+          <sxi:OutputField>mFounded</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='mResponseMessage'][1]/*[local-name()='Object'][1]/*[local-name()='teams'][1]/*[local-name()='Element'][1]/*[local-name()='strCountry'][1]">
+          <sxi:OutputField>mCountry</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="InsertSoccerInfoToDB">
+      <sxi:Fields>
+        <sxi:Field name="mTeamName">
+          <sxi:Rules><sxi:Default>No Team Name Found!</sxi:Default></sxi:Rules>
+          <sxi:OutputField>name</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mBio">
+          <sxi:Rules><sxi:Length>100</sxi:Length></sxi:Rules>
+          <sxi:OutputField>bio</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mSport">
+          <sxi:Rules><sxi:Default>No sport type found!</sxi:Default></sxi:Rules>
+          <sxi:OutputField>sportType</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mStadium">
+          <sxi:Rules><sxi:Default>No stadium found!</sxi:Default></sxi:Rules>
+          <sxi:OutputField>stadium</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mFounded">
+          <sxi:Rules><sxi:Default>No formed year found!</sxi:Default></sxi:Rules>
+          <sxi:OutputField>founded</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mCountry">
+          <sxi:Rules><sxi:Default>No country found!</sxi:Default></sxi:Rules>
+          <sxi:OutputField>country</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="GetFormedYear">
+      <sxi:Fields>
+        <sxi:Field name="mFounded">
+          <sxi:OutputField>mFounded</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="GetPlayersFromMemory">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='mPlayerResponseMessage'][1]/*[local-name()='Object'][1]/*[local-name()='player'][1]/*[local-name()='Element'][1]/*[local-name()='strPlayer'][1]">
+          <sxi:OutputField>mPlayerName</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='mPlayerResponseMessage'][1]/*[local-name()='Object'][1]/*[local-name()='player'][1]/*[local-name()='Element'][1]/*[local-name()='dateBorn'][1]">
+          <sxi:OutputField>mDOB</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='mPlayerResponseMessage'][1]/*[local-name()='Object'][1]/*[local-name()='player'][1]/*[local-name()='Element'][1]/*[local-name()='strPosition'][1]">
+          <sxi:OutputField>mPosition</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="InsertPlayersIntoDB">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='strPlayer']">
+          <sxi:OutputField>name</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='dateBorn']">
+          <sxi:Rules><sxi:Default>2018/09/03</sxi:Default></sxi:Rules>
+          <sxi:OutputField>dob</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="//*[local-name()='Position']">
+          <sxi:Rules><sxi:Default>Player position not found</sxi:Default></sxi:Rules>
+          <sxi:OutputField>position</sxi:OutputField>
+        </sxi:Field>
+        
+        <sxi:Field name="mTeamID">
+          <sxi:Rules><sxi:Default>Player team ID not found</sxi:Default></sxi:Rules>
+          <sxi:OutputField>teamid</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="GetNOP">
+      <sxi:Fields>
+        <sxi:Field name="PlayerCount">
+          <sxi:OutputField>mNOP</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="CreateSubject">
+      <sxi:Fields>
+        <sxi:Field name="NA">
+          <sxi:Rules><sxi:Concatenation>
+            <sxi:Delimiter> </sxi:Delimiter>
+            <sxi:Fields>
+              <sxi:Field staticValue="yes">Process Team:</sxi:Field>
+              <sxi:Field>mTeamName</sxi:Field>
+              <sxi:Field staticValue="yes">(</sxi:Field>
+              <sxi:Field>mFounded</sxi:Field>
+              <sxi:Field staticValue="yes">)</sxi:Field>
+            </sxi:Fields>
+          </sxi:Concatenation></sxi:Rules>
+          <sxi:OutputField>EmailSubject</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="CreateBody">
+      <sxi:Fields>
+        <sxi:Field name="NA">
+          <sxi:Rules><sxi:Concatenation>
+            <sxi:Delimiter> </sxi:Delimiter>
+            <sxi:Fields>
+              <sxi:Field staticValue="yes">Team Name: </sxi:Field>
+              <sxi:Field>mTeamName</sxi:Field>
+            </sxi:Fields>
+          </sxi:Concatenation>
+            <sxi:AppendText>
+              
+            </sxi:AppendText>
+            <sxi:Concatenation>
+              <sxi:Delimiter> </sxi:Delimiter>
+              <sxi:Fields>
+                <sxi:Field staticValue="yes">Team Stadium: </sxi:Field>
+                <sxi:Field>mStadium</sxi:Field>
+              </sxi:Fields>
+            </sxi:Concatenation>
+            <sxi:AppendText>
+              
+            </sxi:AppendText>
+            <sxi:Concatenation>
+              <sxi:Delimiter> </sxi:Delimiter>
+              <sxi:Fields>
+                <sxi:Field staticValue="yes">Founded: </sxi:Field>
+                <sxi:Field>mFounded</sxi:Field>
+              </sxi:Fields>
+            </sxi:Concatenation>
+            <sxi:AppendText>
+              
+            </sxi:AppendText>
+            <sxi:Concatenation>
+              <sxi:Delimiter> </sxi:Delimiter>
+              <sxi:Fields>
+                <sxi:Field staticValue="yes">Country: </sxi:Field>
+                <sxi:Field>mCountry</sxi:Field>
+              </sxi:Fields>
+            </sxi:Concatenation>
+            <sxi:AppendText>
+              
+            </sxi:AppendText>
+            <sxi:Concatenation>
+              <sxi:Delimiter> </sxi:Delimiter>
+              <sxi:Fields>
+                <sxi:Field staticValue="yes">Number of Players: </sxi:Field>
+                <sxi:Field>mNOP</sxi:Field>
+              </sxi:Fields>
+            </sxi:Concatenation>
+          </sxi:Rules>
+          <sxi:OutputField>EmailBody</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="BuildEmail">
+      <sxi:Fields>
+        <sxi:Field name="NA">
+          <sxi:Rules><sxi:Default>zwido.gabara@sxi.co.za</sxi:Default></sxi:Rules>
+          <sxi:OutputField datatype="recipients">To</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="EmailSubject">
+          <sxi:OutputField datatype="string">Subject</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="EmailBody">
+          <sxi:Rules><sxi:Default>Under Construction</sxi:Default></sxi:Rules>
+          <sxi:OutputField>Body</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="PrepareTeamInfo">
+      <sxi:Fields>
+        <sxi:Field name="mTeamName">
+          <sxi:OutputField>TeamNameXSL</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mStadium">
+          <sxi:OutputField>StadiumXSL</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mFounded">
+          <sxi:OutputField>FoundedXSL</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mCountry">
+          <sxi:OutputField>CountryXSL</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mNOP">
+          <sxi:OutputField>NOPXSL</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+  </sxi:DataDefinitions>
+</Configuration>

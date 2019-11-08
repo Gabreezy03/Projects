@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/TestingConnector.xsd">
+  <sxi:Logging>
+    <sxi:Retention>7</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>INFORMATION</sxi:Level>
+  </sxi:Logging>
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  <Connectors>
+    <Connector id="Connector_1" type="DB">
+      <Connection xsi:type="sxi:MSSQL">
+        <sxi:Server>localhost</sxi:Server>
+        <sxi:User>sxi</sxi:User>
+        <sxi:Password>password</sxi:Password>
+        <sxi:RetryDelay>30</sxi:RetryDelay>
+        <sxi:DBName>Test</sxi:DBName>
+        <sxi:Port>1433</sxi:Port>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success />
+        <sxi:RecoverableError>
+          <sxi:Code>.+Read timed out.+</sxi:Code>
+          <sxi:Code>.*Invalid state.+</sxi:Code>
+          <sxi:Code>.*SHUTDOWN is in progress.+</sxi:Code>
+          <sxi:Code>I/O Error: Connection reset by peer: socket write error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+  </Connectors>
+  <SignalRegistry xsi:type="sxi:SigReg.DB">
+    <sxi:ConnectorID>Connector_1</sxi:ConnectorID>
+    <sxi:SignalRegistry>SignalRegistry</sxi:SignalRegistry>
+    <sxi:ActionField>ActionPoint</sxi:ActionField>
+    <sxi:EntryIdField>EntryID</sxi:EntryIdField>
+    <sxi:EpochTimeField>EpochTime</sxi:EpochTimeField>
+    <sxi:ProcessedStateField>ProcessedState</sxi:ProcessedStateField>
+    <sxi:PollingDelay>3</sxi:PollingDelay>
+    <sxi:RecordDelay>1</sxi:RecordDelay>
+    <sxi:ProcessedCodes>
+      <sxi:Unread>0</sxi:Unread>
+      <sxi:Success>1</sxi:Success>
+      <sxi:Error>2</sxi:Error>
+    </sxi:ProcessedCodes>
+    <sxi:UniqueIdField>UID</sxi:UniqueIdField>
+    <sxi:DeleteProcessed>no</sxi:DeleteProcessed>
+  </SignalRegistry>
+  <Actions>
+    <Action name="Create">
+      <Mappings>
+        <Collect dataDefinition="CollectIncident" connectorId="Connector_1" lookupField="entryid" lookupValue="" source="IncidentTable" />
+        <XPress service="Workflow1" action="Create" transmitMethod="HIGH" destination="localhost" />
+      </Mappings>
+    </Action>
+    <Action name="SmartAction">
+      <Mappings>
+        <Collect dataDefinition="CollectIncident" connectorId="Connector_1" lookupField="entryid" lookupValue="" source="IncidentTable">
+          <Conditions>
+            <Condition>
+              <When value="false">
+                <Collect dataDefinition="CollectBackupIncident" connectorId="Connector_1" lookupField="entryid" lookupValue="" source="BackupTable" />
+              </When>
+            </Condition>
+          </Conditions>
+        </Collect>
+        <XPress service="Workflow1" action="Create" transmitMethod="HIGH" destination="localhost" />
+        <Create dataDefinition="SetProcessedDate" connectorId="Connector_1" source="IncidentTable" />
+      </Mappings>
+    </Action>
+  </Actions>
+  <sxi:DataDefinitions>
+    <sxi:DataDefinition name="CollectIncident">
+      <sxi:Fields>
+        <sxi:Field name="Summary">
+          <sxi:Rules />
+          <sxi:OutputField>Summary</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="Description">
+          <sxi:Rules />
+          <sxi:OutputField>Description</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="UserID">
+          <sxi:Rules />
+          <sxi:OutputField>UserID</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="CollectBackupIncident">
+      <sxi:Fields>
+        <sxi:Field name="Summary">
+          <sxi:Rules />
+          <sxi:OutputField>Summary</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="Description">
+          <sxi:Rules />
+          <sxi:OutputField>Description</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="UserID">
+          <sxi:Rules />
+          <sxi:OutputField>UserID</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="SetProcessedDate">
+      <sxi:Fields>
+        <sxi:Field name="ProcessedDate">
+          <sxi:Rules>
+            <sxi:DateConverter InputDateFormat="" OutputDateFormat="dd/MM/yyyy hh:mm:ss" />
+          </sxi:Rules>
+          <sxi:OutputField>ProcessedDate</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="Notifier">
+      <sxi:Fields>
+        <sxi:Field name="StaticMessage">
+          <sxi:Rules>
+            <sxi:Default>The transaction was completed successfully</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>Message</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+  </sxi:DataDefinitions>
+</Configuration>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<XServiceBroker xmlns="http://www.sxi.co.za/XMLSchema">
+    <mAgent_Class xmlns="">SCOM2007</mAgent_Class>
+    <mESMTool xmlns="">SCOM2007</mESMTool>
+    <mMD xmlns="">NDCVCSCOMMGTP01</mMD>
+    <mAgent_Instance xmlns="">Campus Lan</mAgent_Instance>
+    <mServer xmlns="">NDCDHCP01</mServer>
+    <mInstance_Detail xmlns="">Service entered unpredictable state</mInstance_Detail>
+    <mHeader xmlns="">X-CALL</mHeader>
+    <mDate xmlns="">17-07-2018</mDate>
+    <Time xmlns="">17:38:22</Time>
+    <mState xmlns="">Error</mState>
+    <mdest xmlns="">10.30.12.10</mdest>
+    <mUID xmlns="">cb399c0e-04aa-43fa-8be8-92741240cea9</mUID>
+    <mUserData xmlns="">The McAfee ePO Agent Install service is marked as an interactive service.  However, the system is configured to not allow interactive services.  This service may not function properly.</mUserData>
+    <mClient xmlns="">Edcon</mClient>
+    <mSource xmlns="">ESM</mSource>
+    <SXI_SigReg_ActionField>Create</SXI_SigReg_ActionField>
+    <SXI_SigReg_EntryIdField>X-ServiceBroker~FreshServiceBluePrint~123.xml</SXI_SigReg_EntryIdField>
+    <SXI_SigReg_EpochTimeField />
+    <SXI_SigReg_UniqueIdField />
+    <SXI_SigReg_CustomField />
+    <ResponseCode>201</ResponseCode>
+    <ResponseMessage>{"ticket":{"cc_emails":[],"fwd_emails":[],"reply_cc_emails":[],"fr_escalated":false,"spam":false,"email_config_id":null,"group_id":null,"priority":1,"requester_id":15000027094,"responder_id":null,"source":2,"status":2,"subject":"NDCDHCP01 reported: Campus Lan - Service entered unpredictable state","to_emails":null,"department_id":null,"id":4,"type":"Incident","due_by":"2019-09-11T21:00:00Z","fr_due_by":"2019-09-04T18:00:00Z","is_escalated":false,"description":"&lt;div&gt;The McAfee ePO Agent Install service is marked as an interactive service.  However, the system is configured to not allow interactive services.  This service may not function properly.\n&lt;/div&gt;","description_text":"The McAfee ePO Agent Install service is marked as an interactive service.  However, the system is configured to not allow interactive services.  This service may not function properly.","category":null,"sub_category":null,"item_category":null,"custom_fields":{},"created_at":"2019-08-30T09:06:26Z","updated_at":"2019-08-30T09:06:26Z","tags":[],"attachments":[]}}</ResponseMessage>
+    <CreateResponse>
+        <Object xmlns="">
+            <ticket class="object">
+                <attachments class="array" />
+                <category class="object" null="true" />
+                <cc_emails class="array" />
+                <created_at type="string">2019-08-30T09:06:26Z</created_at>
+                <custom_fields class="object" />
+                <department_id class="object" null="true" />
+                <description type="string">&lt;div&gt;The McAfee ePO Agent Install service is marked as an interactive service.  However, the system is configured to not allow interactive services.  This service may not function properly.
+                    &lt;/div&gt;</description>
+                <description_text type="string">The McAfee ePO Agent Install service is marked as an interactive service.  However, the system is configured to not allow interactive services.  This service may not function properly.</description_text>
+                <due_by type="string">2019-09-11T21:00:00Z</due_by>
+                <email_config_id class="object" null="true" />
+                <fr_due_by type="string">2019-09-04T18:00:00Z</fr_due_by>
+                <fr_escalated type="boolean">false</fr_escalated>
+                <fwd_emails class="array" />
+                <group_id class="object" null="true" />
+                <id type="number">4</id>
+                <is_escalated type="boolean">false</is_escalated>
+                <item_category class="object" null="true" />
+                <priority type="number">1</priority>
+                <reply_cc_emails class="array" />
+                <requester_id type="number">15000027094</requester_id>
+                <responder_id class="object" null="true" />
+                <source type="number">2</source>
+                <spam type="boolean">false</spam>
+                <status type="number">2</status>
+                <sub_category class="object" null="true" />
+                <subject type="string">NDCDHCP01 reported: Campus Lan - Service entered unpredictable state</subject>
+                <tags class="array" />
+                <to_emails class="object" null="true" />
+                <type type="string">Incident</type>
+                <updated_at type="string">2019-08-30T09:06:26Z</updated_at>
+            </ticket>
+        </Object>
+    </CreateResponse>
+</XServiceBroker>

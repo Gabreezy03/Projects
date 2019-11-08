@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/CalculatorREST.xsd">
+  <sxi:Logging>
+    <sxi:Retention>0</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>TRACE</sxi:Level>
+  </sxi:Logging>
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  <Connectors>
+    <Connector id="REST_Conn" type="RESTWebService">
+      <Connection xsi:type="sxi:RESTWebService">
+        <sxi:URL>http://api.mathjs.org/v4/</sxi:URL>
+        <sxi:DataTypeToSend>JSON</sxi:DataTypeToSend>
+        <sxi:Stylesheet>C:\SXI\usr\stylesheets\mathsApi.xsl</sxi:Stylesheet>
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>Recoverable Error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    <Connector id="XML_Conn" type="XML">
+      <Connection xsi:type="sxi:XML">
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>^.*FWK005.*$</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+  </Connectors>
+  <SignalRegistry xsi:type="sxi:SigReg.XML">
+    <sxi:ConnectorID>XML_Conn</sxi:ConnectorID>
+    <sxi:FolderPath>../../XPress/XmlOut</sxi:FolderPath>
+    <sxi:ActionElement>Create</sxi:ActionElement>
+    <sxi:FileName>^calculate.*\.xml$</sxi:FileName>
+    <sxi:PollingDelay>1</sxi:PollingDelay>
+    <sxi:DeleteProcessed>yes</sxi:DeleteProcessed>
+  </SignalRegistry>
+  <Actions>
+    <Action name="Create">
+      <Mappings>
+        <Collect dataDefinition="CollectValuesFromXML" connectorId="XML_Conn" lookupField="entryid" lookupValue="" source="../../XPress/XmlOut" />
+        <!-- Rest First Call -->
+        <Create dataDefinition="GetResultsFromRest" connectorId="REST_Conn" source="POST" />
+        <!-- Convert REST response to XML -->
+        <MemoryDataManipulation dataDefinition="ConvertJSONtoXML"/>
+        <!-- Get Data from the converted response -->
+        <MemoryDataManipulation dataDefinition="GetDataFromXML"/>
+        <!-- Rest second call -->
+        <Create dataDefinition="GetResultsFromRestSecondCall" connectorId="REST_Conn" source="POST" />
+        <!--  -->
+        <MemoryDataManipulation dataDefinition="ConvertJSONtoXMLSecondCall"/>
+        <MemoryDataManipulation dataDefinition="GetDataFromSecondCallResp"/>
+        <MemoryDataManipulation dataDefinition="CalculateTotal"/>
+        <OutputMemoryToLog/>
+      </Mappings>
+    </Action>
+  </Actions>
+  <sxi:DataDefinitions>
+    <sxi:DataDefinition name="CollectValuesFromXML">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='num1']">
+          <sxi:Rules />
+          <sxi:OutputField>mFirstNumber</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='num2']">
+          <sxi:Rules />
+          <sxi:OutputField>mSecondNumber</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='operatorOne']">
+          <sxi:OutputField>mOperator</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='operatorTwo']">
+          <sxi:OutputField>mOperatorTwo</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="GetResultsFromRest">
+      <sxi:Fields>
+        <sxi:Field name="mFirstNumber">
+          <sxi:OutputField>mFirstNumber</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mSecondNumber">
+          <sxi:OutputField>mSecondNumber</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mOperator">
+          <sxi:OutputField>mOperator</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="ConvertJSONtoXML">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='ResponseMessage'][1]">
+          <sxi:Rules><sxi:JsonStringToMemory/></sxi:Rules>
+          <sxi:OutputField>firstResponse</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="GetDataFromXML">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='firstResponse'][1]/Object[1]/result[1]/Element[last()]">
+          <sxi:OutputField>mResultOne</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="GetResultsFromRestSecondCall">
+      <sxi:Fields>
+        <sxi:Field name="mFirstNumber">
+          <sxi:OutputField>mFirstNumber</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mResultOne">
+          <sxi:OutputField>mSecondNumber</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mOperatorTwo">
+          <sxi:OutputField>mOperator</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="ConvertJSONtoXMLSecondCall">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='ResponseMessage'][last()]">
+          <sxi:Rules><sxi:JsonStringToMemory/></sxi:Rules>
+          <sxi:OutputField>secondResponse</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="GetDataFromSecondCallResp">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='secondResponse'][1]/Object[1]/result[1]/Element[last()]">
+          <sxi:OutputField>mResultTwo</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="CalculateTotal">
+      <sxi:Fields>
+        <sxi:Field name="mResultOne">
+          <sxi:Rules><sxi:Calculate>
+            <sxi:Expression operator="+">
+              <sxi:Operand inputField="yes">mResultTwo</sxi:Operand>
+            </sxi:Expression>
+          </sxi:Calculate></sxi:Rules>
+          <sxi:OutputField>mTotal</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+  </sxi:DataDefinitions>
+</Configuration>

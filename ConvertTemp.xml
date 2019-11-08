@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/ConvertTemp.xsd">
+  <sxi:Logging>
+    <sxi:Retention>0</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>TRACE</sxi:Level>
+  </sxi:Logging>
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  <Connectors>
+    <Connector id="GetTemp_Conn" type="XML">
+      <Connection xsi:type="sxi:XML">
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>^.*FWK005.*$</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    <!--  -->
+    <Connector id="SOAPTemp_Conn" type="SOAPWebService">
+      <Connection xsi:type="sxi:SOAPWebService">
+        <sxi:SOAPVersion>1.1</sxi:SOAPVersion>
+        <sxi:URL>https://www.w3schools.com/xml/tempconvert.asmx</sxi:URL>
+        <sxi:Username />
+        <sxi:Password />
+        <sxi:Namespaces>
+          <sxi:Namespace prefix="ns0" uri="https://www.w3schools.com/xml/" />
+        </sxi:Namespaces>
+        <sxi:RetryDelay>10</sxi:RetryDelay>
+        <sxi:Stylesheet>C:\SXI\usr\stylesheets\TemInfoSOAP.xsl</sxi:Stylesheet>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>Recoverable Error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+  </Connectors>
+  <SignalRegistry xsi:type="sxi:SigReg.XML">
+    <sxi:ConnectorID>GetTemp_Conn</sxi:ConnectorID>
+    <sxi:FolderPath>../../XPress/</sxi:FolderPath>
+    <sxi:ActionElement>Create</sxi:ActionElement>
+    <sxi:FileName>^Temperature.*\.xml</sxi:FileName>
+    <sxi:PollingDelay>1</sxi:PollingDelay>
+    <sxi:DeleteProcessed>yes</sxi:DeleteProcessed>
+  </SignalRegistry>
+  <Actions>
+    <Action name="Create">
+      <Mappings>
+        <Collect dataDefinition="GetTempFromXMLFile" connectorId="GetTemp_Conn" lookupField="entryid" lookupValue="" source="../../XPress/" />
+        <!--  -->
+        <Create dataDefinition="RequestCelsiusFromSOAP" connectorId="SOAPTemp_Conn" source="CelsiusToFahrenheit"/>
+        <OutputMemoryToLog/>
+      </Mappings>
+    </Action>
+  </Actions>
+  <sxi:DataDefinitions>
+    <sxi:DataDefinition name="GetTempFromXMLFile">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='Temp'][1]">
+          <sxi:Rules />
+          <sxi:OutputField>mTemp</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="RequestCelsiusFromSOAP">
+     <sxi:Fields>
+       <sxi:Field name="mTemp">
+         <sxi:OutputField>mTemp</sxi:OutputField>
+       </sxi:Field>
+     </sxi:Fields>
+   </sxi:DataDefinition>
+  </sxi:DataDefinitions>
+</Configuration>

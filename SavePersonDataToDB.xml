@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/SavePersonDataToDB.xsd">
+  <sxi:Logging>
+    <sxi:Retention>0</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>TRACE</sxi:Level>
+  </sxi:Logging>
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  <Connectors>
+    <Connector id="PeopleDataDB" type="MYSQL">
+      <Connection xsi:type="sxi:MYSQL">
+        <sxi:Server>localhost</sxi:Server>
+        <sxi:User>root</sxi:User>
+        <sxi:Password>admin</sxi:Password>
+        <sxi:RetryDelay>30</sxi:RetryDelay>
+        <sxi:DBName>sxitraining</sxi:DBName>
+        <sxi:Port>3306</sxi:Port>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success />
+        <sxi:RecoverableError>
+          <sxi:Code>I/O Error: Read timed out</sxi:Code>
+          <sxi:Code>Invalid state, the Connection object is closed.</sxi:Code>
+          <sxi:Code>I/O Error: Connection reset by peer: socket write error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    <Connector id="XML_Conn" type="XML">
+      <Connection xsi:type="sxi:XML">
+        <sxi:RetryDelay>10</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>^.*FWK005.*$</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+  </Connectors>
+  <SignalRegistry xsi:type="sxi:SigReg.XML">
+    <sxi:ConnectorID>XML_Conn</sxi:ConnectorID>
+    <sxi:FolderPath>../../XPress/XmlOut</sxi:FolderPath>
+    <sxi:ActionElement>//sxi:ActionName</sxi:ActionElement>
+    <sxi:FileName>^X-ServiceBroker~SendPeople~.*\.xml$</sxi:FileName>
+    <sxi:PollingDelay>1</sxi:PollingDelay>
+    <sxi:DeleteProcessed>yes</sxi:DeleteProcessed>
+  </SignalRegistry>
+  <Actions>
+    <Action name="Create">
+      <Mappings>
+        <Collect dataDefinition="CollectPeopleDataFromXML" connectorId="XML_Conn" lookupField="entryid" lookupValue="" source="../../XPress/XmlOut" />
+        <MemoryDataManipulation dataDefinition="AddFullName" />
+        <Create dataDefinition="InsertPeopleInfo" connectorId="PeopleDataDB" source="people" />
+        <OutputMemoryToLog/>
+      </Mappings>
+    </Action>
+    <Action name="Update">
+      <Mappings>
+        <Collect dataDefinition="CollectPeopleDataFromXML" connectorId="XML_Conn" lookupField="entryid" lookupValue="" source="../../XPress/XmlOut" />
+        <MemoryDataManipulation dataDefinition="AddFullName" />
+        <Update dataDefinition="UpdatePeopleData" connectorId="PeopleDataDB" source="people" lookupField="mFirstName" lookupValue="fname"></Update>
+        <OutputMemoryToLog/>
+      </Mappings>
+    </Action>
+  </Actions>
+  <sxi:DataDefinitions>
+    <sxi:DataDefinition name="CollectPeopleDataFromXML">
+      <sxi:Fields>
+        <sxi:Field name="mFirst">
+          <sxi:Rules />
+          <sxi:OutputField>mFirstName</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mLast">
+          <sxi:Rules />
+          <sxi:OutputField>mLastName</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mCell">
+          <sxi:Rules />
+          <sxi:OutputField>mCellNumber</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="AddFullName">
+      <sxi:Fields>
+        <sxi:Field name="NA">
+          <sxi:Rules><sxi:Concatenation>
+            <sxi:Delimiter>, </sxi:Delimiter>
+            <sxi:Fields>
+              <sxi:Field>mLastName</sxi:Field>
+              <sxi:Field>mFirstName</sxi:Field>
+            </sxi:Fields>
+          </sxi:Concatenation></sxi:Rules>
+          <sxi:OutputField>mFullName</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    
+    <sxi:DataDefinition name="InsertPeopleInfo">
+      <sxi:Fields>
+        <sxi:Field name="mFirstName">
+          <sxi:Rules><sxi:Length>100</sxi:Length></sxi:Rules>
+          <sxi:OutputField>fname</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mLastName">
+          <sxi:Rules><sxi:Length>100</sxi:Length></sxi:Rules>
+          <sxi:OutputField>lname</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mFullName">
+          <sxi:Rules><sxi:Length>100</sxi:Length></sxi:Rules>
+          <sxi:OutputField>fullname</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mCellNumber">
+          <sxi:OutputField>mobilenum</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="UpdatePeopleData">
+      <sxi:Fields>
+        <sxi:Field name="mCellNumber">
+          <sxi:OutputField>mobilenum</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+  </sxi:DataDefinitions>
+</Configuration>

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/SoapWebServiceTest.xsd">
+  <sxi:Logging>
+    <sxi:Retention>7</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>INFORMATION</sxi:Level>
+  </sxi:Logging>
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  <Connectors>
+    <Connector id="Connector_1" type="SOAPWebService">
+      <Connection xsi:type="sxi:SOAPWebService">
+        <sxi:SOAPVersion>1.1</sxi:SOAPVersion>
+        <sxi:URL>http://somewhere:8080/services/WebService?SOAP</sxi:URL>
+        <sxi:Certificate>
+          <sxi:File>C:\Program Files\SXI\X-ServiceBroker\resource\customerCertificate.pfx</sxi:File>
+          <sxi:Pwd>password</sxi:Pwd>
+          <sxi:Type>PKCS12</sxi:Type>
+          <sxi:Algorithm>SunX509</sxi:Algorithm>
+          <sxi:Protocol>TLS</sxi:Protocol>
+        </sxi:Certificate>
+        <sxi:Username />
+        <sxi:Password />
+        <sxi:Namespaces>
+          <sxi:Namespace prefix="sxi" uri="http://www.sxi.co.za/XMLSchema" />
+        </sxi:Namespaces>
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>Recoverable Error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+  </Connectors>
+  <SignalRegistry xsi:type="sxi:SigReg.SOAPWebService">
+    <sxi:ConnectorID>Connector_1</sxi:ConnectorID>
+    <sxi:SignalRegistry>Fetch</sxi:SignalRegistry>
+    <sxi:ActionField>//*:Action</sxi:ActionField>
+    <sxi:EntryIdField>//*:TicketNumber</sxi:EntryIdField>
+    <sxi:PollingDelay>10</sxi:PollingDelay>
+  </SignalRegistry>
+  <Actions>
+    <Action name="Create">
+      <Mappings>
+        <Collect dataDefinition="CollectIncident" connectorId="Connector_1" lookupField="entryid" lookupValue="" source="IncidentTable" />
+        <XPress service="Workflow1" action="Create" transmitMethod="HIGH" destination="localhost" />
+      </Mappings>
+    </Action>
+    <Action name="SmartAction">
+      <Mappings>
+        <Collect dataDefinition="CollectIncident" connectorId="Connector_1" lookupField="entryid" lookupValue="" source="IncidentTable">
+          <Conditions>
+            <Condition>
+              <When value="false">
+                <Collect dataDefinition="CollectBackupIncident" connectorId="Connector_1" lookupField="entryid" lookupValue="" source="BackupTable" />
+              </When>
+            </Condition>
+          </Conditions>
+        </Collect>
+        <XPress service="Workflow1" action="Create" transmitMethod="HIGH" destination="localhost" />
+        <Create dataDefinition="SetProcessedDate" connectorId="Connector_1" source="IncidentTable" />
+      </Mappings>
+    </Action>
+  </Actions>
+  <sxi:DataDefinitions>
+    <sxi:DataDefinition name="CollectIncident">
+      <sxi:Fields>
+        <sxi:Field name="Summary">
+          <sxi:Rules />
+          <sxi:OutputField>Summary</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="Description">
+          <sxi:Rules />
+          <sxi:OutputField>Description</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="UserID">
+          <sxi:Rules />
+          <sxi:OutputField>UserID</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="CollectBackupIncident">
+      <sxi:Fields>
+        <sxi:Field name="Summary">
+          <sxi:Rules />
+          <sxi:OutputField>Summary</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="Description">
+          <sxi:Rules />
+          <sxi:OutputField>Description</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="UserID">
+          <sxi:Rules />
+          <sxi:OutputField>UserID</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="SetProcessedDate">
+      <sxi:Fields>
+        <sxi:Field name="ProcessedDate">
+          <sxi:Rules>
+            <sxi:DateConverter InputDateFormat="" OutputDateFormat="dd/MM/yyyy hh:mm:ss" />
+          </sxi:Rules>
+          <sxi:OutputField>ProcessedDate</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="Notifier">
+      <sxi:Fields>
+        <sxi:Field name="StaticMessage">
+          <sxi:Rules>
+            <sxi:Default>The transaction was completed successfully</sxi:Default>
+          </sxi:Rules>
+          <sxi:OutputField>Message</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+  </sxi:DataDefinitions>
+</Configuration>

@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/WeatherInfo.xsd">
+  <sxi:Logging>
+    <sxi:Retention>0</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>TRACE</sxi:Level>
+  </sxi:Logging>
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  <Connectors>
+    <Connector id="GetWeatherInfo" type="RESTWebService">
+      <Connection xsi:type="sxi:RESTWebService">
+        <sxi:URL>http://api.apixu.com/v1/current.json?key=be6c5f6775cf4f93b7893122182708&amp;q=~#~city~#~</sxi:URL>
+        <sxi:DataTypeToSend>XML</sxi:DataTypeToSend>
+        <sxi:Username/>
+        <sxi:Password/>
+        <sxi:RetryDelay>10</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>Recoverable Error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+    <Connector id="XML_Conn" type="XML">
+      <Connection xsi:type="sxi:XML">
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>^.*FWK005.*$</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    <!--  -->
+    <Connector id="WeatherInfoDB" type="MYSQL">
+      <Connection xsi:type="sxi:MYSQL">
+        <sxi:Server>localhost</sxi:Server>
+        <sxi:User>root</sxi:User>
+        <sxi:Password>admin</sxi:Password>
+        <sxi:RetryDelay>30</sxi:RetryDelay>
+        <sxi:DBName>sxitraining</sxi:DBName>
+        <sxi:Port>3306</sxi:Port>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success />
+        <sxi:RecoverableError>
+          <sxi:Code>I/O Error: Read timed out</sxi:Code>
+          <sxi:Code>Invalid state, the Connection object is closed.</sxi:Code>
+          <sxi:Code>I/O Error: Connection reset by peer: socket write error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    <!--  -->
+    <Connector id="SigRegDB" type="MYSQL">
+      <Connection xsi:type="sxi:MYSQL">
+        <sxi:Server>localhost</sxi:Server>
+        <sxi:User>root</sxi:User>
+        <sxi:Password>admin</sxi:Password>
+        <sxi:RetryDelay>30</sxi:RetryDelay>
+        <sxi:DBName>sxitraining</sxi:DBName>
+        <sxi:Port>3306</sxi:Port>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success />
+        <sxi:RecoverableError>
+          <sxi:Code>I/O Error: Read timed out</sxi:Code>
+          <sxi:Code>Invalid state, the Connection object is closed.</sxi:Code>
+          <sxi:Code>I/O Error: Connection reset by peer: socket write error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+  </Connectors>
+  <SignalRegistry xsi:type="sxi:SigReg.DB">
+    <sxi:ConnectorID>SigRegDB</sxi:ConnectorID>
+    <sxi:SignalRegistry>sig_reg</sxi:SignalRegistry>
+    <sxi:ActionField>Action</sxi:ActionField>
+    <sxi:EntryIdField>entryid</sxi:EntryIdField>
+    <sxi:EpochTimeField>epochtime</sxi:EpochTimeField>
+    <sxi:ProcessedStateField>processedstate</sxi:ProcessedStateField>
+    <sxi:PollingDelay>3</sxi:PollingDelay>
+    <sxi:RecordDelay>1</sxi:RecordDelay>
+    <sxi:ProcessedCodes>
+      <sxi:Unread>0</sxi:Unread>
+      <sxi:Success>1</sxi:Success>
+      <sxi:Error>2</sxi:Error>
+    </sxi:ProcessedCodes>
+    <sxi:UniqueIdField>id</sxi:UniqueIdField>
+    <sxi:DeleteProcessed>no</sxi:DeleteProcessed>
+  </SignalRegistry>
+  <Actions>
+    <Action name="Create">
+      <Mappings>
+        <!--  -->
+        <Collect dataDefinition="CollectIncident" connectorId="SigRegDB" lookupField="id" lookupValue="SXI_SigReg_UniqueIdField" source="sig_reg" />
+        <!--  -->
+        <Create dataDefinition="GetInfoFromRest" connectorId="GetWeatherInfo" source="GET"/>
+        <!--  -->
+        <MemoryDataManipulation dataDefinition="ConvertDataToXML"/>
+        <!--  -->
+        <MemoryDataManipulation dataDefinition="GetDataFromMemory"/>
+        <!--  -->
+        <Create dataDefinition="InsertWeatherInfoToDB" connectorId="WeatherInfoDB" source="tblweatherinfo"/>
+        <OutputMemoryToLog/>
+      </Mappings>
+    </Action>
+
+  </Actions>
+  <sxi:DataDefinitions>
+    <sxi:DataDefinition name="CollectIncident">
+      <sxi:Fields>
+        <sxi:Field name="entryid">
+          <sxi:Rules />
+          <sxi:OutputField>mcity</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="GetInfoFromRest">
+      <sxi:Fields>
+        <sxi:Field name="mcity">
+          <sxi:OutputField>city</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="ConvertDataToXML">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='ResponseMessage']">
+          <sxi:Rules><sxi:JsonStringToMemory/></sxi:Rules>
+          <sxi:OutputField>mResponseMessage</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="GetDataFromMemory">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='mResponseMessage'][1]/*[local-name()='Object'][1]/*[local-name()='location'][1]/*[local-name()='name'][last()]">
+          <sxi:OutputField>mCity</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='mResponseMessage'][1]/*[local-name()='Object'][1]/*[local-name()='current'][1]/*[local-name()='temp_c'][last()]">
+          <sxi:OutputField>mCurrentTemp</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='mResponseMessage'][1]/*[local-name()='Object'][1]/*[local-name()='current'][1]/*[local-name()='feelslike_c'][last()]">
+          <sxi:OutputField>mFeelsLike</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='mResponseMessage'][1]/*[local-name()='Object'][1]/*[local-name()='current'][1]/*[local-name()='last_updated_epoch'][last()]">
+          <sxi:OutputField>mLastUpdatedEpoch</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="InsertWeatherInfoToDB">
+      <sxi:Fields>
+        <sxi:Field name="mCity">
+          <sxi:OutputField>city</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mCurrentTemp">
+          <sxi:OutputField>current_temp</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mFeelsLike">
+          <sxi:OutputField>feels_like</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mLastUpdatedEpoch">
+          <sxi:OutputField>last_updated_epoch</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+  </sxi:DataDefinitions>
+</Configuration>

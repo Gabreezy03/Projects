@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/SuperHeroesDetails.xsd">
+  <sxi:Logging>
+    <sxi:Retention>0</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>TRACE</sxi:Level>
+  </sxi:Logging>
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  <Connectors>
+    <!--  -->
+    <Connector id="XML_Trigger" type="XML">
+      <Connection xsi:type="sxi:XML">
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>^.*FWK005.*$</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+    <!--  -->
+    <Connector id="GetHeroRealNameRest" type="RESTWebService">
+      <Connection xsi:type="sxi:RESTWebService">
+        <sxi:URL>http://cloud.sxi.co.za:9781/superheros/?HeroName=~#~mheroname~#~</sxi:URL>
+        <sxi:DataTypeToSend>JSON</sxi:DataTypeToSend>
+        <sxi:Username/>
+        <sxi:Password/>
+        <sxi:RetryDelay>10</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>Recoverable Error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+    <Connector id="CollectNetworthFromDB" type="MYSQL">
+      <Connection xsi:type="sxi:MYSQL">
+        <sxi:Server>cloud.sxi.co.za</sxi:Server>
+        <sxi:User>demo</sxi:User>
+        <sxi:Password>demo</sxi:Password>
+        <sxi:RetryDelay>30</sxi:RetryDelay>
+        <sxi:DBName>sxidemo_peopledata</sxi:DBName>
+        <sxi:Port>3306</sxi:Port>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success />
+        <sxi:RecoverableError>
+          <sxi:Code>I/O Error: Read timed out</sxi:Code>
+          <sxi:Code>Invalid state, the Connection object is closed.</sxi:Code>
+          <sxi:Code>I/O Error: Connection reset by peer: socket write error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    <!--  -->
+    <Connector id="GetSuperHeroAbilities" type="DB">
+      <Connection xsi:type="sxi:MSSQL">
+        <sxi:Server>cloud.sxi.co.za</sxi:Server>
+        <sxi:User>sxi</sxi:User>
+        <sxi:Password>qwerty</sxi:Password>
+        <sxi:RetryDelay>30</sxi:RetryDelay>
+        <sxi:DBName>SXIDemo_SuperHero</sxi:DBName>
+        <sxi:Port>1433</sxi:Port>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success />
+        <sxi:RecoverableError>
+          <sxi:Code>.+Read timed out.+</sxi:Code>
+          <sxi:Code>.*Invalid state.+</sxi:Code>
+          <sxi:Code>.*SHUTDOWN is in progress.+</sxi:Code>
+          <sxi:Code>I/O Error: Connection reset by peer: socket write error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+    <!--  -->
+    <Connector id="InsertSuperHeroDataToDB" type="MYSQL">
+      <Connection xsi:type="sxi:MYSQL">
+        <sxi:Server>localhost</sxi:Server>
+        <sxi:User>root</sxi:User>
+        <sxi:Password>admin</sxi:Password>
+        <sxi:RetryDelay>30</sxi:RetryDelay>
+        <sxi:DBName>sxi_sample</sxi:DBName>
+        <sxi:Port>3306</sxi:Port>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success />
+        <sxi:RecoverableError>
+          <sxi:Code>I/O Error: Read timed out</sxi:Code>
+          <sxi:Code>Invalid state, the Connection object is closed.</sxi:Code>
+          <sxi:Code>I/O Error: Connection reset by peer: socket write error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+    <Connector id="XML_Conn" type="XML">
+      <Connection xsi:type="sxi:XML">
+        <sxi:Write>
+          <sxi:SaveLocation>../../XPress/XmlOut</sxi:SaveLocation>
+          <sxi:FileName>SuperHeroXMLCreated_$HeroName$_%UNIQUE%.xml</sxi:FileName>
+        </sxi:Write>
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>^.*FWK005.*$</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+  </Connectors>
+
+  <SignalRegistry xsi:type="sxi:SigReg.XML">
+    <sxi:ConnectorID>XML_Trigger</sxi:ConnectorID>
+    <sxi:FolderPath>../../XPress/XmlOut</sxi:FolderPath>
+    <sxi:ActionElement>Create</sxi:ActionElement>
+    <sxi:FileName>SuperHeroes.*\.xml$</sxi:FileName>
+    <sxi:PollingDelay>1</sxi:PollingDelay>
+    <sxi:DeleteProcessed>yes</sxi:DeleteProcessed>
+  </SignalRegistry>
+  <Actions>
+    <Action name="Create">
+      <Mappings>
+        <!--Get hero name from xml file  -->
+        <Collect dataDefinition="CollectHeroNameFromFile" connectorId="XML_Trigger" lookupField="entryid" lookupValue="" source="../../XPress/XmlOut" />
+        <!--Get super hero's real name from REST Web service  -->
+        <Create dataDefinition="FetchPersonsRealName" connectorId="GetHeroRealNameRest" source="GET" />
+        <!-- Convert REST Json response to XML -->
+        <MemoryDataManipulation dataDefinition="ConvertPersonsRealNameXml" />
+        <!-- Get Real name from xml response  -->
+        <MemoryDataManipulation dataDefinition="ExtractNameFromResponse" />
+        <!--Get super hero's networth from mySQL DB  -->
+        <Collect dataDefinition="getNetworthFromDB" connectorId="CollectNetworthFromDB" source="networth" lookupField="realname" lookupValue="mRealName" />
+        <!-- Get abilities from MS SQL DB -->
+        <Collect dataDefinition="GetAbilitiesFromDB" connectorId="GetSuperHeroAbilities" source="Abilities" lookupField="superheroName" lookupValue="mheroname" />
+        <Create dataDefinition="CreateXMLFile" connectorId="XML_Conn" source="../../XPress/XmlOut" />
+        <!-- Insert super hero data into mySQL local DB -->
+        <Create dataDefinition="InsertHeroDataToDB" connectorId="InsertSuperHeroDataToDB" source="superhero_details" />
+        <OutputMemoryToLog/>
+      </Mappings>
+    </Action>
+  </Actions>
+  <sxi:DataDefinitions>
+    <!--  -->
+    <sxi:DataDefinition name="CollectHeroNameFromFile">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='heroname']">
+          <sxi:OutputField>mheroname</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <!--  -->
+    <sxi:DataDefinition name="FetchPersonsRealName">
+      <sxi:Fields>
+        <sxi:Field name="mheroname">
+          <sxi:Rules><sxi:URLEncode/></sxi:Rules>
+          <sxi:OutputField>mheroname</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <!--  -->
+    <sxi:DataDefinition name="ConvertPersonsRealNameXml">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='ResponseMessage'][last()]">
+          <sxi:Rules><sxi:JsonStringToMemory/></sxi:Rules>
+          <sxi:OutputField>mResponseMessage</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <!--  -->
+    <sxi:DataDefinition name="ExtractNameFromResponse">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='mResponseMessage'][1]/*[local-name()='Array'][1]/*[local-name()='Element'][1]/*[local-name()='RealName'][1]">
+          <sxi:OutputField>mRealName</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <!--  -->
+    <sxi:DataDefinition name="getNetworthFromDB">
+      <sxi:Fields>
+        <sxi:Field name="networth">
+          <sxi:Rules><sxi:PrependText>R </sxi:PrependText></sxi:Rules>
+          <sxi:OutputField>mNetworth</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <!--  -->
+    <sxi:DataDefinition name="GetAbilitiesFromDB">
+      <sxi:Fields>
+        <sxi:Field name="abilities">
+          <sxi:OutputField>mAbilities</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <!--  -->
+    <sxi:DataDefinition name="InsertHeroDataToDB">
+      <sxi:Fields>
+        <sxi:Field name="mRealName">
+          <sxi:OutputField>realname</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mheroname">
+          <sxi:OutputField>heroname</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mAbilities">
+          <sxi:Rules><sxi:Default>No abilities found.</sxi:Default></sxi:Rules>
+          <sxi:OutputField>abilities</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mNetworth">
+          <sxi:OutputField>networth</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="NA">
+          <sxi:Rules>
+            <sxi:InsertEpoch/>
+          </sxi:Rules>
+          <sxi:OutputField>dtEpoch</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="CreateXMLFile">
+      <sxi:Fields>
+        <sxi:Field name="mRealName">
+          <sxi:OutputField>RealName</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mheroname">
+          <sxi:OutputField>HeroName</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mAbilities">
+          <sxi:OutputField>Abilities</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mNetworth">
+          <sxi:OutputField>Networth</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="dtEpoch">
+          <sxi:OutputField>DateEpochTime</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="NA">
+          <sxi:Rules><sxi:Default>$</sxi:Default></sxi:Rules>
+          <sxi:OutputField>Currency</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+  </sxi:DataDefinitions>
+</Configuration>

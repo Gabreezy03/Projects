@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/StandardWorkflow" xmlns:sxi="http://www.sxi.co.za/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/StandardWorkflow ../../../schema/plugins/workflows/WBinDBoutTest.xsd">
+  <sxi:Logging>
+    <sxi:Retention>0</sxi:Retention>
+    <sxi:Directory />
+    <sxi:Level>TRACE</sxi:Level>
+  </sxi:Logging>
+  <GlobalNotifications>
+    <Error enabled="no" dataDefinition="" transmitMethod="HIGH" destination="localhost" />
+    <General enabled="no" dataDefinition="Notifier" transmitMethod="LOW" destination="localhost" />
+  </GlobalNotifications>
+  <Heartbeats enabled="no">
+    <Destination>localhost</Destination>
+    <Interval>300</Interval>
+  </Heartbeats>
+  <Connectors>
+    <!---->
+    <Connector id="XML_Conn" type="XML">
+      <Connection xsi:type="sxi:XML">
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>^.*FWK005.*$</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+    <!-- Get share price from db -->
+    <Connector id="GetSharePrice" type="MYSQL">
+      <Connection xsi:type="sxi:MYSQL">
+        <sxi:Server>192.168.95.101</sxi:Server>
+        <sxi:User>demo</sxi:User>
+        <sxi:Password>demo</sxi:Password>
+        <sxi:RetryDelay>30</sxi:RetryDelay>
+        <sxi:DBName>sxidemo_shareprice</sxi:DBName>
+        <sxi:Port>3306</sxi:Port>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success />
+        <sxi:RecoverableError>
+          <sxi:Code>I/O Error: Read timed out</sxi:Code>
+          <sxi:Code>Invalid state, the Connection object is closed.</sxi:Code>
+          <sxi:Code>I/O Error: Connection reset by peer: socket write error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+    <!-- Get company symbols from rest web services -->
+    <Connector id="GetCompanySymbols" type="RESTWebService">
+      <Connection xsi:type="sxi:RESTWebService">
+        <sxi:URL>http://cloud.sxi.co.za:9781/CompanySymbol/?Name=~#~mcompname~#~</sxi:URL>
+        <sxi:DataTypeToSend>JSON</sxi:DataTypeToSend>
+        <sxi:Username/>
+        <sxi:Password/>
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>Recoverable Error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+    <!-- Get current exchange rate from REST web services -->
+    <Connector id="GetCurrentExchangeRate_Conn" type="RESTWebService">
+      <Connection xsi:type="sxi:RESTWebService">
+        <sxi:URL>https://openexchangerates.org/api/latest.json?app_id=~#~appid~#~</sxi:URL>
+        <sxi:DataTypeToSend>JSON</sxi:DataTypeToSend>
+        <sxi:Username/>
+        <sxi:Password/>
+        <sxi:Base64EncodeResponse>no</sxi:Base64EncodeResponse>
+        <sxi:RetryDelay>60</sxi:RetryDelay>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success>
+          <sxi:Code>Success Code</sxi:Code>
+        </sxi:Success>
+        <sxi:RecoverableError>
+          <sxi:Code>Recoverable Error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+    <Connector id="InsertSharePriceInDB" type="MYSQL">
+      <Connection xsi:type="sxi:MYSQL">
+        <sxi:Server>localhost</sxi:Server>
+        <sxi:User>root</sxi:User>
+        <sxi:Password>admin</sxi:Password>
+        <sxi:RetryDelay>30</sxi:RetryDelay>
+        <sxi:DBName>sxi_sample</sxi:DBName>
+        <sxi:Port>3306</sxi:Port>
+      </Connection>
+      <sxi:ReturnCodes>
+        <sxi:Success />
+        <sxi:RecoverableError>
+          <sxi:Code>I/O Error: Read timed out</sxi:Code>
+          <sxi:Code>Invalid state, the Connection object is closed.</sxi:Code>
+          <sxi:Code>I/O Error: Connection reset by peer: socket write error</sxi:Code>
+        </sxi:RecoverableError>
+      </sxi:ReturnCodes>
+    </Connector>
+    
+  </Connectors>
+  
+  
+  <SignalRegistry xsi:type="sxi:SigReg.XML">
+    <sxi:ConnectorID>XML_Conn</sxi:ConnectorID>
+    <sxi:FolderPath>../../XPress/XmlOut</sxi:FolderPath>
+    <sxi:ActionElement>Create</sxi:ActionElement>
+    <sxi:FileName>demo.*\.xml$</sxi:FileName>
+    <sxi:PollingDelay>1</sxi:PollingDelay>
+    <sxi:DeleteProcessed>yes</sxi:DeleteProcessed>
+  </SignalRegistry>
+  
+  <Actions>
+    <Action name="Create">
+      <Mappings>
+        <!-- Get company name from XML file in the XmlOut directory -->
+        <Collect dataDefinition="CollectCompanyData" connectorId="XML_Conn" lookupField="entryid" lookupValue="" source="../../XPress/XmlOut" />
+        <!-- Get company symbols using REST Web Service -->
+        <Create dataDefinition="CollectSymbols" connectorId="GetCompanySymbols" source="GET"/>
+        <!-- Converting data from json to xml-->
+        <MemoryDataManipulation dataDefinition="GetCompanySymbols" />
+        <!-- Extract symbol from ResponseMessage -->
+        <MemoryDataManipulation dataDefinition="ExtractSymbolFromResponse" />
+        <!-- Get share price using company symbol-->
+        <Collect dataDefinition="CollectSharePriceFromDB" connectorId="GetSharePrice" source="share_price_in_usd" lookupField="company_symbol" lookupValue="mSymbol" />
+        <!-- Get Current exchange rate from REST Web Service -->
+        <Create dataDefinition="InsertAppId" connectorId="GetCurrentExchangeRate_Conn" source="GET" />
+        <MemoryDataManipulation dataDefinition="ConvertExchangeRToXML" />
+        <MemoryDataManipulation dataDefinition="CalculateSharePriceInZAR" />
+        <Create dataDefinition="InsertExchangeData" connectorId="InsertSharePriceInDB" source="tblcompanyinfo"></Create>
+        <OutputMemoryToLog/>
+        <!-- Calculate the exchange rate -->
+        <!-- Insert into database -->
+      </Mappings>
+    </Action>
+  </Actions>
+  <sxi:DataDefinitions>
+    <!-- Get company name from the file in XmlOut -->
+    <sxi:DataDefinition name="CollectCompanyData">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='compname']">
+          <sxi:OutputField>mcompname</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="CollectSymbols">
+      <sxi:Fields>
+        <sxi:Field name="mcompname">
+          <sxi:Rules><sxi:Substitute>
+            <sxi:Find> </sxi:Find>
+            <sxi:Replace>%20</sxi:Replace>
+          </sxi:Substitute></sxi:Rules>
+          <sxi:OutputField>mcompname</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="ExtractSymbolFromResponse">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='mResponseMessage'][1]/*[local-name()='Array'][1]/*[local-name()='Element'][1]/*[local-name()='Symbol'][1]">
+          <sxi:OutputField>mSymbol</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="GetCompanySymbols">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='ResponseMessage'][last()]">
+          <sxi:Rules ><sxi:JsonStringToMemory/></sxi:Rules>
+          <sxi:OutputField>mResponseMessage</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="CollectSharePriceFromDB">
+      <sxi:Fields>
+        <sxi:Field name="share_price">
+          <sxi:OutputField>mSharePrice</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="InsertAppId">
+      <sxi:Fields>
+        <sxi:Field name="NA">
+          <sxi:Rules><sxi:Default>d40d7478c2254a6b8304bfe99fc4e4e8</sxi:Default></sxi:Rules>
+          <sxi:OutputField>appid</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="ConvertExchangeRToXML">
+      <sxi:Fields>
+        <sxi:Field name="//*[local-name()='ResponseMessage'][last()]">
+          <sxi:Rules><sxi:JsonStringToMemory/></sxi:Rules>
+          <sxi:OutputField>mExchangeRate</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="CalculateSharePriceInZAR">
+      <sxi:Fields>
+        <sxi:Field name="mSharePrice">
+          <sxi:Rules><sxi:Calculate>
+            <sxi:Expression operator="*">
+              <sxi:Operand inputField="yes">//*[local-name()='mExchangeRate'][1]/*[local-name()='Object'][1]/*[local-name()='rates'][1]/*[local-name()='ZAR'][1]</sxi:Operand>
+            </sxi:Expression>
+          </sxi:Calculate></sxi:Rules>
+          <sxi:OutputField>mZARSharePrice</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+    <sxi:DataDefinition name="InsertExchangeData">
+      <sxi:Fields>
+        <sxi:Field name="mcompname">
+          <sxi:OutputField>companyname</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mSymbol">
+          <sxi:OutputField>abbr</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="NA">
+          <sxi:Rules><sxi:DateConverter InputDateFormat="" OutputDateFormat="yyyy-MM-dd hh:mm:ss"/></sxi:Rules>
+          <sxi:OutputField>exdate</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mSharePrice">
+          <sxi:OutputField>shareprice</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="//*[local-name()='mExchangeRate'][1]/*[local-name()='Object'][1]/*[local-name()='rates'][1]/*[local-name()='ZAR'][1]">
+          <sxi:OutputField>exrate</sxi:OutputField>
+        </sxi:Field>
+        <sxi:Field name="mZARSharePrice">
+          <sxi:OutputField>ppshare</sxi:OutputField>
+        </sxi:Field>
+      </sxi:Fields>
+    </sxi:DataDefinition>
+  </sxi:DataDefinitions>
+</Configuration>
