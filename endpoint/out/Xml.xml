@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Configuration xmlns="http://www.sxi.co.za/XMLSchema/Xml"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:sxi="http://www.sxi.co.za/XMLSchema"
+    xsi:schemaLocation="http://www.sxi.co.za/XMLSchema/Xml ../../../../schema/plugins/endpoint/out/Xml.xsd">
+    <sxi:Logging>
+        <sxi:Retention>7</sxi:Retention>
+        <sxi:Directory/>
+        <sxi:Level>INFORMATION</sxi:Level>
+    </sxi:Logging>
+    <StylesheetPath/>
+</Configuration>
